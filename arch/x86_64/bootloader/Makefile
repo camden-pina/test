@@ -1,13 +1,13 @@
 include ../../../lib/Makefile
 
 # Compiler and flags (can be overridden by the top-level makefile)
-BUILD_CC = x86_64-elf-gcc
+BUILD_CC = x86_64-w64-mingw32-gcc
 CC_FLAGS = -ffreestanding -O2 -Wall -Wextra -mno-red-zone \
            -I/usr/include/efi -I/usr/include/efi/x86_64 \
            -fno-stack-protector -fpic -fshort-wchar
 
 # Linking flags for GNU-EFI
-LDFLAGS = -nostdlib -znocombreloc -T bootloader.lds -shared -Bsymbolic \
+LDFLAGS = -Wl,-dll -shared -Wl,--subsystem,10 -e efi_main -nostdlib -T bootloader.lds -shared -Bsymbolic \
           -L/usr/lib -lefi -lgnuefi
 
 # Source and object directories

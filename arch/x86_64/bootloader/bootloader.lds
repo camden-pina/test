@@ -1,6 +1,7 @@
 /* Minimal GNU-EFI linker script for a UEFI application.
    Adjust the base address as necessary.
 */
+OUTPUT_FORMAT(pei-x86-64)
 ENTRY(efi_main)
 SECTIONS
 {
