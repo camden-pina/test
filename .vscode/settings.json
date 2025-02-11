@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "cstdarg": "c",
+        "cstdint": "c",
+        "cstdlib": "c",
+        "typeinfo": "c",
+        "z_syscalls.h": "c",
+        "z_utils.h": "c",
+        "z_elf.h": "c"
+    }
+}

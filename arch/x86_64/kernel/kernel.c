@@ -1,0 +1,91 @@
+#include <kernel.h>
+#include <descriptor_tables/gdt.h>
+#include <descriptor_tables/idt.h>
+#include <descriptor_tables/isr.h>
+#include <interrupts/lapic.h>
+#include <acpi/acpi.h>
+#include <mm/pmm.h>
+#include <mm/vmem.h>
+
+#include "ps2_mouse.h"
+
+#include <stdarg.h>
+
+#include <sys/io.h>
+#include <stdio.h>
+#include <string.h>
+
+static unsigned char SCAN_CODE_MAPPING[] = "\x00""\x1B""1234567890-=""\x08""\tqwertyuiop[]\n\0asdfghjkl;'`\0\\zxcvbnm,./\0*\0 \0\0\0\0\0\0\0\0\0\0\0\0\0-456+1230.\0\0\0\0\0";
+
+static void keyboard_isr(void)
+{
+	unsigned char scancode = inb(0x60);	// Read Scancode
+
+	// Reset Keyboard Controller
+	unsigned char a = inb(0x61);
+	a |= 0x82;
+	outb(0x61, a);
+	a &= 0x7f;
+	outb(0x61, a);
+
+	if (scancode & 0x80)
+	{
+		scancode = scancode & ~0x80;
+
+		unsigned char pressed_char = SCAN_CODE_MAPPING[scancode];
+
+		putc(pressed_char);
+	}
+}
+
+static void ps2_keyboard_init(void)
+{
+	printf("Initializing Keyboard\n\r");
+	register_interrupt_handler(33, keyboard_isr);
+	ioapic_map(1, 33);
+}
+
+extern uint64_t kernel_start;
+extern uint64_t kernel_end;
+
+void kern_main(flexboot_header_t* boot_hdr)
+{
+	krnl_set_graphics_ouutput_protocol(boot_hdr->fb, boot_hdr->fb_w, boot_hdr->fb_h, boot_hdr->fb_bpp, boot_hdr->fb_pps);
+    
+	pmm_init(boot_hdr->memoryMap, boot_hdr->mapSize, boot_hdr->descriptorSize);
+
+	uint64_t kernel_size = (uint64_t)&kernel_end - (uint64_t)&kernel_start;
+	uint64_t kernel_pages = (uint64_t)(kernel_size / 0x1000) + 1;
+	
+	pmm_pages_lock(&kernel_start, kernel_pages);
+
+	vmem_init((uint64_t)boot_hdr->fb, boot_hdr->fb_sz);
+	
+	printf("\n\rtotal_memory: %l", pmm_get_total_memory());
+	printf("\n\rtotal_memory_used: %l", pmm_get_total_memory_used());
+	printf("\n\rtotal_memory_free: %l", pmm_get_total_memory_free());
+	printf("\n\rtotal_memory_reserved: %l", pmm_get_total_memory_reserved());
+	
+	asm volatile("cli");
+	acpi_init(boot_hdr->rsdp_addr);
+	gdt_init();
+	apic_init();
+	idt_init();
+
+	ps2_keyboard_init();
+	ps2_mouse_init();
+	asm volatile("sti");
+	drawRect(0, 0, boot_hdr->fb_w, boot_hdr->fb_h, 0x00000000);
+	krnl_printf_reset_x();
+	krnl_printf_reset_y();
+	
+	printf("ModernOS (C)\n\n\r");
+	printf("Copyright (C) Ideal Technologies Inc.\n\r");
+	
+	printf("\n\rfree_memory: %08%x\n\r", pmm_get_total_memory_free());
+	
+	while (1)
+	{
+
+	}
+}
