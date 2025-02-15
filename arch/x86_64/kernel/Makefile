@@ -1,22 +1,48 @@
-include ../../../lib/Makefile
+################################################################################
+# Kernel Makefile for $(ARCH) (Example for x86_64)
+# Recursively finds C and assembly source files in the current directory and all
+# subdirectories, excluding files whose names start with "._".
+################################################################################
 
-SRC_C	= $(wildcard *.c *.c */*.c */*/*.c)
-SRC_S	= $(wildcard *.s **/*.s)
-OBJ_C	= $(patsubst %.c,%.o,$(SRC_C))
-OBJ_S	= $(patsubst %.s,%.o,$(SRC_S))
+# Use the CROSS_COMPILE variable passed from the top level.
+CC  := $(CROSS_COMPILE)gcc
+LD  := ld
 
-CC	= x86_64-elf-gcc
-CFLAGS	= -O3 -Wall -Wextra -pedantic -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs -Winline -Wno-long-long -Wuninitialized -Wstrict-prototypes -Wunsafe-loop-optimizations -fno-builtin -fno-stack-protector -ffreestanding -nostdlib -mno-red-zone
+# Compiler flags.
+CFLAGS  := -I../../../lib/libk/include/ -I./include -ffreestanding -O2 -Wall -Wextra -O3 -Wall -Wextra -pedantic -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs -Winline -Wno-long-long -Wuninitialized -Wstrict-prototypes -Wunsafe-loop-optimizations -fno-builtin -fno-stack-protector -ffreestanding -nostdlib -mno-red-zone
 
-INC	= -I $(lib_dir)/libk/include/ -I ./include
+# Linker flags (assumes a linker script "kernel.ld" exists in this directory).
+LDFLAGS := -Tkernel.ld -n -static -Bsymbolic -nostdlib -L../../../lib
 
-AS	= $(CC)
+# Recursively find all C source files (excluding files starting with "._").
+CS_SRCS := $(shell find . -type f -name '*.c' ! -name '._*')
+# Recursively find all assembly source files (excluding files starting with "._").
+AS_SRCS := $(shell find . -type f -name '*.s' ! -name '._*')
 
+# Convert source files to object files.
+CS_OBJS := $(CS_SRCS:.c=.o)
+AS_OBJS := $(AS_SRCS:.s=.o)
+
+# Combined list of object files.
+OBJS := $(CS_OBJS) $(AS_OBJS)
+
+TARGET := kernel.elf
+
+.PHONY: all clean
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	@echo "==> Linking kernel..."
+	$(LD) $(LDFLAGS) -o $@ $(OBJS) -lk
+
+# Rule to compile C source files.
 %.o: %.c
-	@$(CC) $(INC) $(CFLAGS) $(lib-gnuefi) $< -c -o $@
+	$(CC) $(CFLAGS) -c -o $@ $<
 
+# Rule to compile assembly source files.
 %.o: %.s
-	@$(AS) -D__ASSEMBLY__ $< -c -o $@
+	$(CC) $(CFLAGS) -c -o $@ $<
 
-.PHONY: compile_kernel
-compile_kernel: $(OBJ_C) $(OBJ_S)
+clean:
+	rm -f $(OBJS) $(TARGET)

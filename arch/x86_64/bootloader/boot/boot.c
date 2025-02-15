@@ -44,8 +44,8 @@ EFI_STATUS PANIC(CHAR16* str)
 	ST->ConOut->OutputString(ST->ConOut, L"    Press Any Key To Reboot");
 
 	EFI_INPUT_KEY Key;
-	uefi_call_wrapper(ST->ConIn->Reset, 2, ST->ConIn, FALSE);
-	while ((Status = uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &Key)) == EFI_NOT_READY);
+	ST->ConIn->Reset, 2, ST->ConIn, FALSE;
+	while ((Status = ST->ConIn->ReadKeyStroke(ST->ConIn, &Key)) == EFI_NOT_READY);
 	return Status;
 }
 
@@ -58,13 +58,13 @@ void PRINT_EFI(EFI_STATUS Status)
 	if (Status == EFI_INVALID_PARAMETER)
 		ST->ConOut->OutputString(ST->ConOut, L"EFI_INVALID_PARAMETER");
 	if (Status == EFI_OUT_OF_RESOURCES)
-		ST->ConOut->OutputString(ST->ConOut, L"EFI_OUT_OF_RESOURCES");
+		ST->ConOut->OutputString (ST->ConOut, L"EFI_OUT_OF_RESOURCES");
 	if (Status == EFI_NOT_FOUND)
 		ST->ConOut->OutputString(ST->ConOut, L"EFI_NOT_FOUND");
 }
 
 EFI_FILE* fops_open_file(EFI_FILE* root_dir, CHAR16* filename, UINT64 mode, UINT64 attributes) {
-	EFI_STATUS Status = uefi_call_wrapper(root_dir->Open, 5, root_dir, &root_dir, filename, mode, attributes);
+	EFI_STATUS Status = root_dir->Open(root_dir, &root_dir, filename, mode, attributes);
 
 	if (Status == EFI_SUCCESS) {
 		return root_dir;
@@ -82,8 +82,7 @@ EFI_FILE* fops_open_kernel(CHAR16* kernel_fname) {
 	EFI_GUID simpleFileSystemProtocol = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
 
 	ST->ConOut->OutputString(ST->ConOut, L"Locating Simple File System Handle");
-	Status = uefi_call_wrapper(ST->BootServices->LocateHandleBuffer,
-		5,
+	Status = ST->BootServices->LocateHandleBuffer(
 		ByProtocol,
 		&simpleFileSystemProtocol,
 		(void*)0,
@@ -100,8 +99,7 @@ EFI_FILE* fops_open_kernel(CHAR16* kernel_fname) {
 		EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* fileSystem = (void*)0;
 
 		ST->ConOut->OutputString(ST->ConOut, L"Looking For File System");
-		Status = uefi_call_wrapper(ST->BootServices->HandleProtocol,
-			3,
+		Status = ST->BootServices->HandleProtocol(
 			handleBuffer[i],
 			&simpleFileSystemProtocol,
 			(VOID**)&fileSystem);
@@ -197,7 +195,7 @@ EFI_STATUS load_kernel(CHAR16* kernel_fname, OUT void** entry_address) {
 		UINTN FileInfoSize;
 		EFI_FILE_INFO *FileInfo;
 		Kernel->GetInfo(Kernel, &gEfiFileInfoGuid, &FileInfoSize, NULL);
-		Status = uefi_call_wrapper(ST->BootServices->AllocatePool, 3, EfiLoaderData, FileInfoSize, (void**)&FileInfo);
+		Status = ST->BootServices->AllocatePool(EfiLoaderData, FileInfoSize, (void**)&FileInfo);
 		if (EFI_ERROR(Status))
 			PANIC(L"Error Reading Header");
 		
@@ -230,7 +228,7 @@ EFI_STATUS load_kernel(CHAR16* kernel_fname, OUT void** entry_address) {
 	{
 		Kernel->SetPosition(Kernel, header.e_phoff);
 		UINTN size = header.e_phnum * header.e_phentsize;
-		Status = uefi_call_wrapper(ST->BootServices->AllocatePool, 3, EfiLoaderData, size, (void**)&phdrs);
+		Status = ST->BootServices->AllocatePool(EfiLoaderData, size, (void**)&phdrs);
 		if (EFI_ERROR(Status))
 			PANIC(L"Error Reading Program Headers!");
 			
@@ -252,7 +250,7 @@ EFI_STATUS load_kernel(CHAR16* kernel_fname, OUT void** entry_address) {
 				if (phdr->p_filesz != 0)
 				{
 					int pages = (phdr->p_memsz + 0x1000 - 1) / 0x1000; // round up
-					Status = uefi_call_wrapper(ST->BootServices->AllocatePages, 4, AllocateAddress, EfiLoaderData, pages, &segment);
+					Status = ST->BootServices->AllocatePages(AllocateAddress, EfiLoaderData, pages, &segment);
 					if (EFI_ERROR(Status))
 						PANIC(L"Error Allocating Pages for Kernel!");
 					
@@ -402,9 +400,9 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
 	UINTN descriptorSize = 0;
 	unsigned int descriptorVersion = 0;
 
-	Status = uefi_call_wrapper(ST->BootServices->GetMemoryMap, 5, &mapSize, memoryMap, &mapKey, &descriptorSize, &descriptorVersion);
-	Status = uefi_call_wrapper(ST->BootServices->AllocatePool, 3, EfiLoaderData, mapSize, (void**)&memoryMap);
-	Status = uefi_call_wrapper(ST->BootServices->GetMemoryMap, 5, &mapSize, memoryMap, &mapKey, &descriptorSize, &descriptorVersion);
+	Status = ST->BootServices->GetMemoryMap(&mapSize, memoryMap, &mapKey, &descriptorSize, &descriptorVersion);
+	Status = ST->BootServices->AllocatePool(EfiLoaderData, mapSize, (void**)&memoryMap);
+	Status = ST->BootServices->GetMemoryMap(&mapSize, memoryMap, &mapKey, &descriptorSize, &descriptorVersion);
 	
 	/*
 	Status = uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &mapSize, memoryMap, (void*)0, &descriptorSize, (void*)0);
@@ -415,7 +413,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable
 	Status = uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &mapSize, memoryMap, &mapKey, &descriptorSize, (unsigned int*)&descriptorVersion);
 	*/
 
-	Status = uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, mapKey);
+	Status = SystemTable->BootServices->ExitBootServices(ImageHandle, mapKey);
 	if (EFI_ERROR(Status))
 		return EFI_SUCCESS;
 	

@@ -1,1 +1,0 @@
-x86_64-elf-gcc -ffreestanding -O2 -Wall -Wextra -mno-red-zone -I/usr/include/efi -I/usr/include/efi/x86_64 -fno-stack-protector -fpic -fshort-wchar -c src/serial.c -o obj/serial.o

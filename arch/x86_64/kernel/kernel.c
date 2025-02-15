@@ -48,8 +48,62 @@ static void ps2_keyboard_init(void)
 extern uint64_t kernel_start;
 extern uint64_t kernel_end;
 
+// Inline functions to perform port I/O operations.
+static inline void serial_outb(uint16_t port, uint8_t data) {
+    __asm__ volatile ("outb %0, %1" : : "a"(data), "Nd"(port));
+}
+
+static inline uint8_t serial_inb(uint16_t port) {
+    uint8_t ret;
+    __asm__ volatile ("inb %1, %0" : "=a"(ret) : "Nd"(port));
+    return ret;
+}
+
+// Initializes the serial port (COM1) for output.
+// This configuration sets COM1 to 38400 baud, 8N1 with FIFO enabled.
+void init_serial(void) {
+    // Disable interrupts on the serial port.
+    serial_outb(0x3F8 + 1, 0x00);
+
+    // Enable Divisor Latch Access Bit (DLAB) to set baud rate divisor.
+    serial_outb(0x3F8 + 3, 0x80);
+
+    // Set divisor to 3 (low byte) for 38400 baud.
+    serial_outb(0x3F8 + 0, 0x03);
+
+    // Set divisor (high byte) to 0.
+    serial_outb(0x3F8 + 1, 0x00);
+
+    // Disable DLAB and configure: 8 bits, no parity, one stop bit.
+    serial_outb(0x3F8 + 3, 0x03);
+
+    // Enable FIFO, clear them, with 14-byte threshold.
+    serial_outb(0x3F8 + 2, 0xC7);
+
+    // Enable interrupts (if desired) and set RTS/DSR.
+    serial_outb(0x3F8 + 4, 0x0B);
+}
+
+// Sends a single character to the serial port.
+void serial_putc(char c) {
+    // Wait until the Transmit Holding Register is empty.
+    while (!(serial_inb(0x3F8 + 5) & 0x20))
+        ;
+    serial_outb(0x3F8, c);
+}
+
+// Writes a null-terminated string to the serial port.
+void serial_write(const char *str) {
+    while (*str) {
+        serial_putc(*str++);
+    }
+}
+
 void kern_main(flexboot_header_t* boot_hdr)
 {
+	init_serial();
+	serial_putc('x');
+
 	krnl_set_graphics_ouutput_protocol(boot_hdr->fb, boot_hdr->fb_w, boot_hdr->fb_h, boot_hdr->fb_bpp, boot_hdr->fb_pps);
     
 	pmm_init(boot_hdr->memoryMap, boot_hdr->mapSize, boot_hdr->descriptorSize);
