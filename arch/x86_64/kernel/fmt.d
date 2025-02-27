@@ -1,0 +1,1 @@
+fmt.o: fmt.c

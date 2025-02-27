@@ -39,9 +39,10 @@ all: $(TARGET_BOOT) $(TARGET_KERNEL) image
 ################################################################################
 $(TARGET_BOOT):
 	@echo "==> Building bootloader for $(ARCH)..."
-	$(MAKE) -C $(ARCH_DIR)/bootloader CROSS_COMPILE="$(CROSS_COMPILE_BOOT)"
+	$(MAKE) -C $(ARCH_DIR)/bootloader all CROSS_COMPILE="$(CROSS_COMPILE_BOOT)"
 	@echo "==> Copying bootloader binary to top-level..."
-	cp $(ARCH_DIR)/bootloader/$(TARGET_BOOT) .
+	cp $(ARCH_DIR)/bootloader/edk2/Build/MyPlatform/Output/RELEASE_GCC5/X64/Loader.efi BOOTX64.EFI
+	#cp $(ARCH_DIR)/bootloader/$(TARGET_BOOT) .
 
 ################################################################################
 # Build Kernel
@@ -71,8 +72,10 @@ image: $(TARGET_BOOT) $(TARGET_KERNEL)
 		mkdir -p $(MNT_DIR); \
 		sudo mount -t vfat "$${LOOPDEV}p1" $(MNT_DIR); \
 		sudo mkdir -p $(MNT_DIR)/EFI/BOOT; \
+		sudo mkdir -p $(MNT_DIR)/ModernOS/fonts; \
 		sudo cp $(TARGET_BOOT) $(MNT_DIR)/EFI/BOOT/$(TARGET_BOOT); \
-		sudo cp $(TARGET_KERNEL) $(MNT_DIR)/$(TARGET_KERNEL); \
+		sudo cp $(TARGET_KERNEL) $(MNT_DIR)/ModernOS/$(TARGET_KERNEL); \
+		sudo cp lib/fonts/dfltfont.psf $(MNT_DIR)/ModernOS/fonts; \
 		sync; \
 		sudo umount $(MNT_DIR); \
 		sudo losetup -d $$LOOPDEV; \
@@ -84,10 +87,10 @@ image: $(TARGET_BOOT) $(TARGET_KERNEL)
 ################################################################################
 # Ensure an OVMF firmware file exists in build/ (you might generate or download it)
 OVMF := ./RELEASE$(shell echo $(ARCH) | tr '[:lower:]' '[:upper:]')_OVMF.fd
-run: image
+run: 
 	@echo "==> Launching QEMU for $(ARCH)..."
 ifeq ($(ARCH),x86_64)
-	qemu-system-x86_64 -cpu qemu64 -bios $(OVMF) -drive file=$(DISK_IMG),if=ide
+	qemu-system-x86_64 -cpu qemu64 -bios $(OVMF) -drive file=$(DISK_IMG),if=ide -chardev stdio,id=char0,logfile=serial.log,signal=off -serial chardev:char0 -no-reboot
 else ifeq ($(ARCH),arm)
 	qemu-system-arm -M virt -cpu cortex-a15 -bios $(OVMF) -drive file=$(DISK_IMG),if=sd,format=raw
 endif

@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdio.h>
 
 #include <mm/bitmap.h>
 #include <mm/pmm.h>

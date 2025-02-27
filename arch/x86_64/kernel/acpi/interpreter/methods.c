@@ -1,5 +1,5 @@
 #include <acpi/interpreter/methods.h>
-#include <stdio.h>
+#include <panic.h>
 
 //    Called by the system firmware to query OSPM about interfaces features
 //    supported by the host operating system

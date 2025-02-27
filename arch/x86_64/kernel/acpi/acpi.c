@@ -4,7 +4,6 @@
 
 #include <acpi/acpi.h>
 
-#include <stdio.h>
 #include <node.h>
 
 #include <stdint.h>
@@ -13,6 +12,8 @@
 #include <acpi/tables.h>
 
 #include <acpi/aml.h>
+#include <printf.h>
+#include <panic.h>
 
 #include <acpi/interpreter/namespace.h>
 
@@ -85,23 +86,23 @@ _Bool acpi_init(unsigned long long* rsdp_ptr)
 	xsdt = (void*)0;
 	fadt = (void*)0;
 	
-	DEBUG("Initializing ACPI...\n\r");
+	kprintf("Initializing ACPI...\n\r");
 	xsdt = (acpi_xsdt_t*)(((acpi_rsdp_t*)rsdp_ptr)->xsdt_ptr);
 	
-	DEBUG("Verfiying XSDT\n\r");
+	kprintf("Verfiying XSDT\n\r");
 	// ensure XSDT is valid
 	if (!acpi_checksum(&xsdt))
 		PANIC("ACPI Init: Invalid XSDT Checksum");
 	// locate FADT
-	DEBUG("Setting FADT\n\r");
+	kprintf("Setting FADT\n\r");
 	fadt = (acpi_fadt_t*)acpi_locate_table("FACP");
 
-	DEBUG("Verifying FADT\n\r");
+	kprintf("Verifying FADT\n\r");
 	// ensure valid FADT
 	if (!acpi_checksum(&fadt))
 		PANIC("ACPI Init: Invalud FADT Header");
 
-	DEBUG("Verifying X_DSDT\n\r");
+	kprintf("Verifying X_DSDT\n\r");
 	// locate & ensure valid X_DSDT
 	if (!acpi_checksum(&fadt->x_dsdt))
 		PANIC("ACPI Init: Invalid XDSDT");

@@ -1,7 +1,7 @@
 #include <descriptor_tables/idt.h>
 #include <descriptor_tables/gdt.h>
-
-#include <stdio.h>
+#include <printf.h>
+#include <panic.h>
 
 #define IDT_GATE_COUNT 256
 
@@ -57,7 +57,7 @@ static void idt_set_entry(unsigned short index, unsigned long long isrAddr, unsi
 extern void idt_flush(void);
 
 void idt_init(void) {
-	printf("Initializing IDT...\n\r");
+	kprintf("Initializing IDT...\n\r");
 	memset(&IDT, 0, (sizeof(gate_descriptor_t) * IDT_GATE_COUNT));
 
 	for (int idx = 0; idx < IDT_GATE_COUNT; idx++)
@@ -111,7 +111,7 @@ void idt_init(void) {
 	IDTR.limit = sizeof(IDT) - 1;
 	IDTR.base = (unsigned long long)&IDT[0];
 
-	asm volatile("lidt (%0)" : : "r"(&IDTR) : "memory");
+	__asm__ volatile("lidt (%0)" : : "r"(&IDTR) : "memory");
 
 	//idt_flush();
 }

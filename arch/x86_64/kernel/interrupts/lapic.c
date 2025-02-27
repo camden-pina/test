@@ -1,9 +1,9 @@
 #include <interrupts/lapic.h>
 #include <interrupts/ioapic.h>
-
-#include <stdio.h>
+#include <printf.h>
+#include <panic.h>
 #include <msr.h>
-#include <sys/io.h>
+#include <io.h>
 
 #define ALL_ONES (~0ull)
 #define BOTTOM_N_BITS_OFF(n) (ALL_ONES << (n))
@@ -93,11 +93,11 @@ static void disable_pic(void)
 
 void apic_init(void)
 {
-    printf("Initializing APIC\n\r");
+    kprintf("Initializing APIC\n\r");
     disable_pic();
 
     if (!load_ioapic_address()) {
-        printf("\nCould not find I/O APIC! This is currently required.\n");
+        kprintf("\nCould not find I/O APIC! This is currently required.\n");
     }
 
 // Get the Local APIC Base
@@ -108,13 +108,13 @@ void apic_init(void)
     // This Bit may be reserved in future processors
     apic_msr |= (1 << 11);  // Set "APIC Global Enable" bit
     
-    printf("APIC MSR: %x\n\r", apic_msr);
+    kprintf("APIC MSR: %x\n\r", apic_msr);
     write_msr(MSR_IA32_APIC_BASE, apic_msr);
 
 // Enable the Local APIC
     unsigned int spurious_irq_num = apic_read(LAPIC_SVR);
     spurious_irq_num |= (1 << 8);   //  Enable "APIC Software Enable/Disable" bit
-    printf("Suprious_IRQ_Num: %x\n\r", spurious_irq_num);
+    kprintf("Suprious_IRQ_Num: %x\n\r", spurious_irq_num);
     apic_write(LAPIC_SVR, spurious_irq_num);
 }
 

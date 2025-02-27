@@ -1,68 +1,87 @@
 ################################################################################
-# Bootloader Makefile for $(ARCH) (Example for x86_64)
+# UEFI Bootloader Makefile using EDK2 Build System (No GNU‑EFI) with Logging
 ################################################################################
 
-# Use the CROSS_COMPILE variable passed from the top level.
-CC  := x86_64-w64-mingw32-gcc
-AS  := x86_64-w64-mingw32-as
-LD  := x86_64-w64-mingw32-ld
+# Set the directory where the fixed EDK2 tree should reside.
+EDK2_DIR      := $(shell pwd)/edk2/
+EDK2_REPO_URL := https://github.com/tianocore/edk2.git
+EDK2_TAG      := edk2-stable202211
+WORKSPACE	  := $(EDK2_DIR)
 
-# Compiler flags.
-CFLAGS  := -I/usr/include/efi -I/usr/include/efi/x86_64 -I./include -fpic -ffreestanding -fno-stack-protector -fno-stack-check -fshort-wchar -mno-red-zone -maccumulate-outgoing-args -DEFI_FUNCTION_WRAPPER
-#-nostdlib -ffreestanding -O2 -fpic -Wall -Wextra -mno-red-zone \
-#           -I/usr/include/efi -I/usr/include/efi/x86_64 -I./include \
-#           -fno-stack-protector -fpic -fshort-wchar
-# Linker flags: adjust as needed for UEFI targets.
-LDFLAGS := -shared -Bsymbolic -nostdlib -znocombreloc -L../../../lib/gnu-efi-3.0.12/x86_64/lib -L../../../lib/gnu-efi-3.0.12/x86_64/gnuefi -T../../../lib/gnu-efi-3.0.12/gnuefi/elf_x86_64_efi.lds ../../../lib/gnu-efi-3.0.12/x86_64/gnuefi/crt0-efi-x86_64.o
+# Path to your platform DSC file (relative to the current directory).
+MY_PLATFORM_DSC := MyPlatform.dsc
 
-# Find all C and assembly source files in the current directory and subdirectories,
-# excluding files starting with "._" (common macOS metadata files).
-C_SRCS  := $(shell find . -type f -name '*.c' ! -name '._*')
-AS_SRCS := $(shell find . -type f -name '*.S' ! -name '._*')
-SRCS    := $(C_SRCS) $(AS_SRCS)
+# Define a logging function that prints messages with a timestamp.
+define log
+	echo "[`date '+%Y-%m-%d %H:%M:%S'`] $(1)"
+endef
 
-# Generate object file paths in the build directory, mirroring the source directory structure.
-BUILD_DIR := build
-SO = main.so
-OBJS      := $(patsubst ./%.c,$(BUILD_DIR)/%.o,$(C_SRCS)) \
-             $(patsubst ./%.S,$(BUILD_DIR)/%.o,$(AS_SRCS))
+.PHONY: edk2_setup all clean
 
-# Target bootloader binary (name provided by the top-level).
-TARGET  := $(if $(filter $(ARCH),x86_64),BOOTX64.EFI,BOOTARM.EFI)
+# edk2_setup: If the EDK2 tree isn't present, clone it at the specified tag.
+edk2_setup:
+	@$(call log, "Checking for EDK2 tree in '$(EDK2_DIR)'...");
+	@if [ ! -d "$(EDK2_DIR)" ]; then \
+	  $(call log, "EDK2 tree not found. Cloning $(EDK2_TAG)..."); \
+	  git clone --branch $(EDK2_TAG) --depth 1 $(EDK2_REPO_URL) $(EDK2_DIR); \
+	  cd $(EDK2_DIR) && $(call log, "Updating submodules...") && git submodule update --init --recursive --depth 1; \
+	  echo "Press any key to continue..."; read -n 1 -s; \
+	  make -C BaseTools; \
+	  export CONF_PATH=$$(pwd)/Conf; \
+	  export EDK_TOOLS_PATH=$$(pwd)/BaseTools; \
+	  echo $$WORKSPACE \
+	  echo $$EDK_TOOLS_PATH \
+	  echo $$PACKAGES_PATH \
+	  echo $$CONF_PATH \
+	  echo "Press any key to continue..."; read -n 1 -s; \
+	  . ./edksetup.sh; \
+	  echo "Press any key to continue..."; read -n 1 -s; \
+	  cd ../; \
+	  echo "Press any key to continue..."; read -n 1 -s; \
+	  make -C edk2/BaseTools; \
+	else \
+	  $(call log, "EDK2 tree already exists in $(EDK2_DIR)."); \
+	fi
+	@if [ ! -d "$(EDK2_DIR)/MyBootloader" ]; then \
+		ls && \
+		cp -r MyBootloader/ $(EDK2_DIR)/; \
+	else \
+		$(call log, "Found MyBootloader in edk/ directory"); \
+	fi
 
-.PHONY: all clean $(TARGET)
+# all: Ensure edk2_setup runs, then build your bootloader via EDK2.
+all: edk2_setup
+	export WORKSPACE=$(WORKSPACE)
+	@$(call log, "Verifying required files...")
+	@if [ ! -f "$(WORKSPACE)MyBootloader/$(MY_PLATFORM_DSC)" ]; then \
+	  $(call log, "ERROR: DSC file '$(MY_PLATFORM_DSC)' not found!"); \
+	  exit 1; \
+	fi
+	@if [ ! -f "$(EDK2_DIR)/edksetup.sh" ]; then \
+	  $(call log, "ERROR: edksetup.sh not found in $(EDK2_DIR)!"); \
+	  exit 1; \
+	fi
+	@$(call log, "Starting build process for UEFI Bootloader using EDK2...")
+	@cd $(EDK2_DIR) && \
+	  export EDK_TOOLS_PATH=$$(pwd)/BaseTools && \
+	  export CONF_PATH=$$(pwd)/Conf && \
+	  if [ ! -d "$$(pwd)/BaseTools" ]; then \
+	    $(call log, "ERROR: BaseTools directory not found in EDK2 tree!"); \
+	    exit 1; \
+	  fi && \
+	  $(call log, "Sourcing edksetup.sh...") && \
+	  . ./edksetup.sh && \
+	  $(call log, "Running EDK2 build command...") && \
+	  cd ../../ && \
+	  build -a X64 -t GCC5 -b RELEASE -p MyBootloader/$(MY_PLATFORM_DSC)
+	@if [ $$? -ne 0 ]; then \
+	  $(call log, "Build failed!"); \
+	  exit 1; \
+	fi
+	@$(call log, "UEFI Bootloader built successfully.")
 
-all: $(TARGET)
-
-# Rule to create the build directory structure.
-$(BUILD_DIR)/%/:
-	@mkdir -p $@
-
-# Pattern rule for C files.
-$(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)/%/
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-$(SO): $(OBJS)
-	@echo "==> Creating Shared Object File"
-	$(LD) $(LDFLAGS) $(OBJS) -o $@ -l:libgnuefi.a -l:libefi.a
-
-# Pattern rule for assembly files.
-$(BUILD_DIR)/%.o: %.S | $(BUILD_DIR)/%/
-	$(AS) -o $@ $<
-
-$(TARGET): $(OBJS) # $(SO)
-	@echo "==> Objcopying..."
-#	x86_64-w64-mingw32-gcc $(LDFLAGS) $(OBJS) -o $@ -l:libgnuefi.a -l:libefi.a
-	x86_64-w64-mingw32-gcc -ffreestanding -nostdlib -mno-stack-arg-probe -mgeneral-regs-only -fno-asynchronous-unwind-tables -pie -s -Wl,--subsystem,10 -march=x86-64 -mtune=generic -Wall -Os -flto -fno-ident -e efi_main $(OBJS) -o $@
-#	 objcopy -j .text                \
-#          -j .sdata               \
-#          -j .data                \
-#          -j .dynamic             \
-#          -j .dynsym              \
-#          -j .rel                 \
-#          -j .rela                \
-#          -j .reloc               \
-#		  --target pei-x86-64 --subsystem=10 main.so BOOTX64.EFI
-
+# clean: Use EDK2's clean command.
 clean:
-	rm -rf $(BUILD_DIR) $(TARGET) $(SO)
+	@$(call log, "Cleaning EDK2 build artifacts...")
+	@cd $(EDK2_DIR) && . ./edksetup.sh && build -a X64 -t GCC5 -b RELEASE clean
+	@$(call log, "Clean complete.")

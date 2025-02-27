@@ -4,8 +4,7 @@
 #include <descriptor_tables/isr.h>
 #include <interrupts/ioapic.h>
 
-#include <stdio.h>
-#include <sys/io.h>
+#include <io.h>
 
 void ps2_mouse_init(void);
 unsigned long long get_mouse_x(void);

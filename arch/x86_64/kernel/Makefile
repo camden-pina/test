@@ -6,13 +6,18 @@
 
 # Use the CROSS_COMPILE variable passed from the top level.
 CC  := $(CROSS_COMPILE)gcc
-LD  := ld
+LD  := $(CROSS_COMPILE)gcc
 
 # Compiler flags.
-CFLAGS  := -I../../../lib/libk/include/ -I./include -ffreestanding -O2 -Wall -Wextra -O3 -Wall -Wextra -pedantic -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs -Winline -Wno-long-long -Wuninitialized -Wstrict-prototypes -Wunsafe-loop-optimizations -fno-builtin -fno-stack-protector -ffreestanding -nostdlib -mno-red-zone
+CFLAGS  := -std=c23 -I./lib/libk/include -I./include -mcmodel=large -mno-red-zone \
+			-fno-stack-protector -fno-omit-frame-pointer -fno-builtin-memset \
+			-Wall -MMD -ffreestanding -nostdlib -Werror=int-conversion -m64
+
+
+# -ffreestanding -O2 -Wall -Wextra -O3 -Wall -Wextra -pedantic -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls -Wnested-externs -Winline -Wno-long-long -Wuninitialized -Wstrict-prototypes -Wunsafe-loop-optimizations -fno-builtin -fno-stack-protector -ffreestanding -nostdlib -mno-red-zone -mcmodel=kernel
 
 # Linker flags (assumes a linker script "kernel.ld" exists in this directory).
-LDFLAGS := -Tkernel.ld -n -static -Bsymbolic -nostdlib -L../../../lib
+LDFLAGS := -Tkernel.ld -Bsymbolic -n -nostdlib -z max-page-size=0x1000 -nostdlib -L../../../lib
 
 # Recursively find all C source files (excluding files starting with "._").
 CS_SRCS := $(shell find . -type f -name '*.c' ! -name '._*')

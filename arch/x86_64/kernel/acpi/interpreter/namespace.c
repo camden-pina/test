@@ -3,7 +3,9 @@
 #include <acpi/interpreter/methods.h>
 
 #include <mm/pmm.h>
-#include <stdio.h>
+#include <printf.h>
+#include <panic.h>
+#include <string.h>
 
 static void acpi_namespace_load_table(void* ptr);
 
@@ -56,7 +58,7 @@ static void acpi_namespace_node_install(acpi_namespace_node_t* node)
 void acpi_namespace_create(void* dsdt)
 {
 	for (int i = 0; i < 100; i++)
-		printf("%02%x ", *((char*)dsdt + i));
+		kprintf("%02%x ", *((char*)dsdt + i));
     
     acpi_namespace_code = NULL;
     acpi_namespace_allocation = 0;
@@ -134,7 +136,7 @@ static void acpi_namespace_load_table(void* ptr)
 {
     acpi_aml_t* table = (acpi_aml_t*)ptr;   // cast ptr to aml table
     
-    DEBUG("Loaded AML table '%c%c%c%c', total %l bytes of AML code\n\r", *((char*)ptr + 0), *((char*)ptr + 1), *((char*)ptr + 2), *((char*)ptr + 3));
+    kprintf("Loaded AML table '%c%c%c%c', total %l bytes of AML code\n\r", *((char*)ptr + 0), *((char*)ptr + 1), *((char*)ptr + 2), *((char*)ptr + 3));
     
     while ((lai_acpins_size + table->hdr.len) >= acpi_namespace_allocation)
     {

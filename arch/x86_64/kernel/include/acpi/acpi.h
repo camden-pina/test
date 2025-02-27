@@ -8,7 +8,7 @@
 #include <kernel.h>
 
 #include <string.h>
-#include <sys/io.h>
+#include <io.h>
 
 #include <stdint.h>
 #include <stddef.h>

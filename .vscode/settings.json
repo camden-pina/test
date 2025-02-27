@@ -6,6 +6,20 @@
         "typeinfo": "c",
         "z_syscalls.h": "c",
         "z_utils.h": "c",
-        "z_elf.h": "c"
+        "z_elf.h": "c",
+        "percpu.h": "c",
+        "panic.h": "c",
+        "stddef.h": "c",
+        "stdint.h": "c",
+        "kernel.h": "c",
+        "io.h": "c",
+        "aml.h": "c",
+        "printf.h": "c",
+        "*.ipp": "cpp",
+        "any": "cpp",
+        "optional": "cpp",
+        "variant": "cpp",
+        "mutex": "cpp",
+        "shared_mutex": "cpp"
     }
 }

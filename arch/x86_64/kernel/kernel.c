@@ -11,8 +11,7 @@
 
 #include <stdarg.h>
 
-#include <sys/io.h>
-#include <stdio.h>
+#include <io.h>
 #include <string.h>
 
 static unsigned char SCAN_CODE_MAPPING[] = "\x00""\x1B""1234567890-=""\x08""\tqwertyuiop[]\n\0asdfghjkl;'`\0\\zxcvbnm,./\0*\0 \0\0\0\0\0\0\0\0\0\0\0\0\0-456+1230.\0\0\0\0\0";
@@ -34,13 +33,13 @@ static void keyboard_isr(void)
 
 		unsigned char pressed_char = SCAN_CODE_MAPPING[scancode];
 
-		putc(pressed_char);
+		// putc(pressed_char);
 	}
 }
 
 static void ps2_keyboard_init(void)
 {
-	printf("Initializing Keyboard\n\r");
+	kprintf("Initializing Keyboard\n\r");
 	register_interrupt_handler(33, keyboard_isr);
 	ioapic_map(1, 33);
 }
@@ -104,8 +103,10 @@ void kern_main(flexboot_header_t* boot_hdr)
 	init_serial();
 	serial_putc('x');
 
-	krnl_set_graphics_ouutput_protocol(boot_hdr->fb, boot_hdr->fb_w, boot_hdr->fb_h, boot_hdr->fb_bpp, boot_hdr->fb_pps);
-    
+	// krnl_set_graphics_ouutput_protocol(boot_hdr->fb->base_addr, boot_hdr->fb->px_width, boot_hdr->fb->px_height, boot_hdr->fb->bpp, boot_hdr->fb->pps);
+    // drawRect(0, 0, 100, 200, 0xAAAAFFFF);
+	serial_putc('f');
+	
 	pmm_init(boot_hdr->memoryMap, boot_hdr->mapSize, boot_hdr->descriptorSize);
 
 	uint64_t kernel_size = (uint64_t)&kernel_end - (uint64_t)&kernel_start;
@@ -113,14 +114,14 @@ void kern_main(flexboot_header_t* boot_hdr)
 	
 	pmm_pages_lock(&kernel_start, kernel_pages);
 
-	vmem_init((uint64_t)boot_hdr->fb, boot_hdr->fb_sz);
+	vmem_init((uint64_t)boot_hdr->fb->base_addr, boot_hdr->fb->buffer_sz);
 	
-	printf("\n\rtotal_memory: %l", pmm_get_total_memory());
-	printf("\n\rtotal_memory_used: %l", pmm_get_total_memory_used());
-	printf("\n\rtotal_memory_free: %l", pmm_get_total_memory_free());
-	printf("\n\rtotal_memory_reserved: %l", pmm_get_total_memory_reserved());
+	kprintf("\n\rtotal_memory: %l", pmm_get_total_memory());
+	kprintf("\n\rtotal_memory_used: %l", pmm_get_total_memory_used());
+	kprintf("\n\rtotal_memory_free: %l", pmm_get_total_memory_free());
+	kprintf("\n\rtotal_memory_reserved: %l", pmm_get_total_memory_reserved());
 	
-	asm volatile("cli");
+	__asm__ volatile("cli");
 	acpi_init(boot_hdr->rsdp_addr);
 	gdt_init();
 	apic_init();
@@ -128,15 +129,15 @@ void kern_main(flexboot_header_t* boot_hdr)
 
 	ps2_keyboard_init();
 	ps2_mouse_init();
-	asm volatile("sti");
-	drawRect(0, 0, boot_hdr->fb_w, boot_hdr->fb_h, 0x00000000);
-	krnl_printf_reset_x();
-	krnl_printf_reset_y();
+	__asm__ volatile("sti");
+	// drawRect(0, 0, boot_hdr->fb->px_width, boot_hdr->fb->px_height, 0x00000000);
+	// krnl_printf_reset_x();
+	// krnl_printf_reset_y();
 	
-	printf("ModernOS (C)\n\n\r");
-	printf("Copyright (C) Ideal Technologies Inc.\n\r");
+	kprintf("ModernOS (C)\n\n\r");
+	kprintf("Copyright (C) Ideal Technologies Inc.\n\r");
 	
-	printf("\n\rfree_memory: %08%x\n\r", pmm_get_total_memory_free());
+	kprintf("\n\rfree_memory: %08%x\n\r", pmm_get_total_memory_free());
 	
 	while (1)
 	{

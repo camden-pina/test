@@ -1,43 +1,44 @@
-/* The bootloader will look at this image and start execution at the symbol
-   designated as the entry point. */
 ENTRY(kern_main)
 
-/* Tell where the various sections of the object files will be put in the final
-   kernel image. */
-SECTIONS
-{
-	kernel_start = .;
-  /* Begin putting sections at 1 MiB, a conventional place for kernels to be
-     loaded at by the bootloader. */
-  . = 1M;
+SECTIONS {
+  __kernel_address = 0x100000;
+  __kernel_virtual_offset = 0xFFFF800000000000;
+  . = __kernel_address + __kernel_virtual_offset;
 
-  /* First put the .text section. */
-  .text BLOCK(4K) : ALIGN(4K)
-  {
+  /* Kernel Code */
+  __kernel_code_start = .;
+  .text : AT(ADDR(.text)) {
     *(.text)
   }
 
-  /* Read-only data. */
-  .rodata BLOCK(4K) : ALIGN(4K)
-  {
+  .rodata ALIGN(4K) : AT(ADDR(.rodata)) {
     *(.rodata)
   }
 
-  /* Read-write data (initialized) */
-  .data BLOCK(4K) : ALIGN(4K)
-  {
+  .eh_frame : AT(ADDR(.eh_frame)) {
+    *(.eh_frame)
+  }
+
+  . = ALIGN(4K);
+  __kernel_code_end = .;
+
+  /* Kernel Data */
+  .data : AT(ADDR(.data)) {
     *(.data)
   }
 
-  /* Read-write data (uninitialized) and stack */
-  .bss BLOCK(4K) : ALIGN(4K)
-  {
-    *(COMMON)
-    *(.bss)
-    /**(.bootstrap_stack)*/
+  .boot_data : AT(ADDR(.boot_data)) {
+    *(.boot_data)
   }
 
-  /* The compiler may produce other sections, by default it will put them in
-     a segment with the same name. Simply add stuff here as needed. */
-     kernel_end = .;
+  .bss ALIGN(4K) : AT(ADDR(.bss)) {
+    *(.bss)
+  }
+
+  . = ALIGN(4K);
+  __kernel_data_end = .;
+
+  /* -- Add user-friendly labels here -- */
+  kernel_start = __kernel_code_start;
+  kernel_end   = __kernel_data_end;
 }

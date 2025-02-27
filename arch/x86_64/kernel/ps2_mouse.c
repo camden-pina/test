@@ -1,4 +1,5 @@
 #include "ps2_mouse.h"
+#include <printf.h>
 
 #define MOUSE_STATUS 0x64
 #define MOUSE_PORT 0x60
@@ -36,7 +37,7 @@ static void mouse_handler(void)
 			mouse_x += mouse_byte[1];
 			mouse_y -= mouse_byte[2];
 
-			drawRect(mouse_x, mouse_y, 10, 10, 0xFFFF0000);
+			// drawRect(mouse_x, mouse_y, 10, 10, 0xFFFF0000);
 			mouse_cycle = 0;
 			break;
 		}
@@ -85,7 +86,7 @@ unsigned long long get_mouse_y(void) { return mouse_y; }
 
 void ps2_mouse_init(void)
 {
-	printf("Initializing Mouse");
+	kprintf("Initializing Mouse");
 	mouse_x = 200;
 	mouse_y = 200;
 	mouse_cycle = 0;

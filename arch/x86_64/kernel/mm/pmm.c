@@ -1,5 +1,6 @@
 #include <mm/pmm.h>
-#include <stdio.h>
+#include <printf.h>
+#include <panic.h>
 
 const char* EFI_MEMORY_TYPE_STRINGS[] =
 {
@@ -66,7 +67,7 @@ void pmm_init(void* memoryMap, uint64_t memoryMapSize, uint64_t memoryMapDescSiz
 
     uint64_t memoryMapEntries = (memoryMapSize / memoryMapDescSize);
 
-    drawRect(0, 0, 1366, 768, 0x00000000);
+    // drawRect(0, 0, 1366, 768, 0x00000000);
 
     for (uint64_t i = 0; i < memoryMapEntries; i++)
     {
@@ -166,7 +167,7 @@ void* kmalloc(size_t sz)
     }
     else
     {
-        printf("not enough memory");
+        kprintf("not enough memory");
         return NULL;
     }
 

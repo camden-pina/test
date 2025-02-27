@@ -1,474 +1,512 @@
-#include <elf.h>
-#include "../../kernel/include/kernel.h"
-
 #include <efi.h>
 #include <efilib.h>
-
-#include <stdint.h>
+#include <elf.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <../../kernel/include/kernel.h>   // Use unified definitions from kernel.h
 
-EFI_STATUS Status;
+#ifndef PF_X
+#define PF_X (1 << 0)
+#endif
 
-void* memcpy(void* destination, const void* source, unsigned long long length)
-{
-	for (unsigned long long i = 0; i < length; ++i) {
-		((unsigned char*)destination)[i] = ((unsigned char*)source)[i];
-	}
-	return destination;
+// --- Linking Constants (do not change) ---
+#define KERNEL_PHYSICAL 0x100000ULL
+#define KERNEL_VIRTUAL  0xffffffff80000000ULL
+
+// --- Page Table Flags & Size ---
+#define PAGE_SIZE    0x1000ULL
+#define PAGE_PRESENT 0x001ULL
+#define PAGE_WRITE   0x002ULL
+#define PAGE_PSE     (1ULL << 7)
+
+// --- Global Variables ---
+EFI_HANDLE         gImageHandle;
+EFI_SYSTEM_TABLE*  st;  // We'll use 'st' for all conout calls
+EFI_BOOT_SERVICES* gBootServices;
+
+// --- Basic Memory & String Functions ---
+int memcmp(const void* aptr, const void* bptr, size_t n) {
+    const unsigned char* a = aptr;
+    const unsigned char* b = bptr;
+    for (size_t i = 0; i < n; i++) {
+        if (a[i] < b[i]) { return -1; }
+        else if (a[i] > b[i]) { return 1; }
+    }
+    return 0;
 }
 
-void* memset(void* buffer, int value, unsigned long long length)
-{
-	for (unsigned long long i = 0; i < length; ++i) {
-		((unsigned char*)buffer)[i] = (unsigned char)value;
-	}
-	return buffer;
+UINTN strcmp(CHAR8* a, CHAR8* b, UINTN length) {
+    for (UINTN i = 0; i < length; ++i) {
+        if (*a != *b)
+            return 0;
+        ++a;
+        ++b;
+    }
+    return 1;
 }
 
-int memcmp(const void* aptr, const void* bptr, unsigned long long size)
-{
-	const unsigned char* a = (const unsigned char*)aptr;
-	const unsigned char* b = (const unsigned char*)bptr;
-	for (unsigned long long i = 0; i < size; i++) {
-		if (a[i] < b[i])
-			return -1;
-		else if (b[i] < a[i])
-			return 1;
-	}
-	return 0;
+// --- EFI_PRINT: Debug helper for EFI_STATUS values ---
+void EFI_PRINT(EFI_STATUS Status) {
+    if (Status == EFI_SUCCESS)
+        st->ConOut->OutputString(st->ConOut, L"EFI_SUCCESS");
+    else if (Status == EFI_BUFFER_TOO_SMALL)
+        st->ConOut->OutputString(st->ConOut, L"EFI_BUFFER_TOO_SMALL");
+    else if (Status == EFI_INVALID_PARAMETER)
+        st->ConOut->OutputString(st->ConOut, L"EFI_INVALID_PARAMETER");
+    else if (Status == EFI_OUT_OF_RESOURCES)
+        st->ConOut->OutputString(st->ConOut, L"EFI_OUT_OF_RESOURCES");
+    else if (Status == EFI_NOT_FOUND)
+        st->ConOut->OutputString(st->ConOut, L"EFI_NOT_FOUND");
+    else
+        st->ConOut->OutputString(st->ConOut, L"UNKNOWN EFI STATUS");
 }
 
-EFI_STATUS PANIC(CHAR16* str)
-{
-	ST->ConOut->OutputString(ST->ConOut, str);
-	ST->ConOut->OutputString(ST->ConOut, L"    Press Any Key To Reboot");
+// --- File Loading Helpers ---
+EFI_FILE* LoadFile(EFI_FILE* dir, CHAR16* path) {
+    EFI_FILE* loadedFile;
+    static EFI_LOADED_IMAGE_PROTOCOL* loadedImage;
+    if (loadedImage == NULL) {
+        gBootServices->HandleProtocol(gImageHandle,
+                                      &gEfiLoadedImageProtocolGuid,
+                                      (void**)&loadedImage);
+    }
+    static EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* fileSystem;
+    if (fileSystem == NULL) {
+        gBootServices->HandleProtocol(loadedImage->DeviceHandle,
+                                      &gEfiSimpleFileSystemProtocolGuid,
+                                      (void**)&fileSystem);
+    }
+    if (dir == NULL) {
+        fileSystem->OpenVolume(fileSystem, &dir);
+    }
+    EFI_STATUS status = dir->Open(dir, &loadedFile, path,
+                                  EFI_FILE_MODE_READ, EFI_FILE_READ_ONLY);
+    if (status == EFI_SUCCESS) {
+        return loadedFile;
+    }
 
-	EFI_INPUT_KEY Key;
-	ST->ConIn->Reset, 2, ST->ConIn, FALSE;
-	while ((Status = ST->ConIn->ReadKeyStroke(ST->ConIn, &Key)) == EFI_NOT_READY);
-	return Status;
+    EFI_PRINT(status);
+
+    return NULL;
 }
 
-void PRINT_EFI(EFI_STATUS Status)
-{
-	if (Status == EFI_SUCCESS)
-		ST->ConOut->OutputString(ST->ConOut, L"EFI_SUCCESS");
-	if (Status == EFI_BUFFER_TOO_SMALL)
-		ST->ConOut->OutputString(ST->ConOut, L"EFI_BUFFER_TOO_SMALL");
-	if (Status == EFI_INVALID_PARAMETER)
-		ST->ConOut->OutputString(ST->ConOut, L"EFI_INVALID_PARAMETER");
-	if (Status == EFI_OUT_OF_RESOURCES)
-		ST->ConOut->OutputString (ST->ConOut, L"EFI_OUT_OF_RESOURCES");
-	if (Status == EFI_NOT_FOUND)
-		ST->ConOut->OutputString(ST->ConOut, L"EFI_NOT_FOUND");
+// --- PSF1 Font Loader ---
+// (Using psf1_header and psf1_font from kernel.h)
+#define PSF1_MAGIC0 0x36
+#define PSF1_MAGIC1 0x04
+
+psf1_font* LoadPSF1Font(EFI_FILE* dir, CHAR16* path) {
+    EFI_FILE* font = LoadFile(dir, path);
+    if (font == NULL) { 
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Could not load font file\n");
+        return NULL;
+    }
+    psf1_header* font_hdr;
+    gBootServices->AllocatePool(EfiLoaderData, sizeof(psf1_header), (VOID**)&font_hdr);
+    if (font_hdr == 0) {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Failed to allocate pool for PSF1 font header\n");
+        return NULL;
+    }
+    UINTN size = sizeof(psf1_header);
+    font->Read(font, &size, font_hdr);
+    if (font_hdr->Magic[0] != PSF1_MAGIC0 || font_hdr->Magic[1] != PSF1_MAGIC1) {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Invalid PSF1 font format\n");
+        return NULL;
+    }
+    UINTN glyphBufferSize = font_hdr->CharacterSize * 256;
+    if (font_hdr->Mode == 1) {
+        glyphBufferSize  = font_hdr->CharacterSize * 512;
+    }
+    VOID* glyphBuffer = NULL;
+    gBootServices->AllocatePool(EfiLoaderData, glyphBufferSize, &glyphBuffer);
+    if (glyphBuffer == NULL) {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Failed to allocate pool for PSF1 font glyph buffer\n");
+        return NULL;
+    }
+    font->SetPosition(font, sizeof(psf1_header));
+    font->Read(font, &glyphBufferSize, glyphBuffer);
+    psf1_font* final_font = NULL;
+    gBootServices->AllocatePool(EfiLoaderData, sizeof(psf1_font), (VOID**)&final_font);
+    if (final_font == NULL) {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Failed to allocate pool for final PSF1 font\n");
+        return NULL;
+    }
+    final_font->header = font_hdr;
+    final_font->GlyphBuffer = glyphBuffer;
+    return final_font;
 }
 
-EFI_FILE* fops_open_file(EFI_FILE* root_dir, CHAR16* filename, UINT64 mode, UINT64 attributes) {
-	EFI_STATUS Status = root_dir->Open(root_dir, &root_dir, filename, mode, attributes);
-
-	if (Status == EFI_SUCCESS) {
-		return root_dir;
-	}
-	else {
-		ST->ConOut->OutputString(ST->ConOut, L"fops_open_file() error:");
-		return NULL;
-	}
+// --- GOP Initialization ---
+// (Using the 'framebuffer' type from kernel.h)
+framebuffer* InitializeGOP() {
+    EFI_GUID gopGuid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+    EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
+    EFI_STATUS status;
+    status = gBootServices->LocateProtocol(&gopGuid, NULL, (void**)&gop);
+    if (EFI_ERROR(status)) {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Unable to locate Graphics Output Protocol\n");
+        return NULL;
+    }
+    st->ConOut->OutputString(st->ConOut, L"GOP located successfully\n");
+    
+    // Allocate and fill a framebuffer structure from kernel.h
+    framebuffer* fb;
+    gBootServices->AllocatePool(EfiLoaderData, sizeof(framebuffer), (void**)&fb);
+    if (!fb) {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Failed to allocate pool for framebuffer\n");
+        return NULL;
+    }
+    fb->base_addr = (void*)gop->Mode->FrameBufferBase;
+    fb->buffer_sz = gop->Mode->FrameBufferSize;
+    fb->px_width = gop->Mode->Info->HorizontalResolution;
+    fb->px_height = gop->Mode->Info->VerticalResolution;
+    fb->pps = gop->Mode->Info->PixelsPerScanLine;
+    return fb;
 }
 
-EFI_FILE* fops_open_kernel(CHAR16* kernel_fname) {
-	EFI_FILE* kernel_file = NULL;
-	UINTN handleCount = 0;
-	EFI_HANDLE* handleBuffer = (void*)0;
-	EFI_GUID simpleFileSystemProtocol = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_GUID;
-
-	ST->ConOut->OutputString(ST->ConOut, L"Locating Simple File System Handle");
-	Status = ST->BootServices->LocateHandleBuffer(
-		ByProtocol,
-		&simpleFileSystemProtocol,
-		(void*)0,
-		&handleCount,
-		&handleBuffer);
-	if (EFI_ERROR(Status))
-		PANIC(L"    [FAILED]");
-	ST->ConOut->OutputString(ST->ConOut, L"    [SUCCESS]\n\r");
-
-	ST->ConOut->OutputString(ST->ConOut, L"Loading Handles");
-	for (unsigned long long i = 0; i < handleCount; ++i)
-	{
-
-		EFI_SIMPLE_FILE_SYSTEM_PROTOCOL* fileSystem = (void*)0;
-
-		ST->ConOut->OutputString(ST->ConOut, L"Looking For File System");
-		Status = ST->BootServices->HandleProtocol(
-			handleBuffer[i],
-			&simpleFileSystemProtocol,
-			(VOID**)&fileSystem);
-		if (EFI_ERROR(Status))
-		{
-			ST->ConOut->OutputString(ST->ConOut, L"    [FAILED] No File System Detected on Handle\n\r");
-			continue;
-		}
-		ST->ConOut->OutputString(ST->ConOut, L"    [SUCCESS]\n\r");
-
-		EFI_FILE_PROTOCOL* root = (void*)0;
-
-		ST->ConOut->OutputString(ST->ConOut, L"Opening Volume");
-		Status = fileSystem->OpenVolume(fileSystem, &root);
-		if (EFI_ERROR(Status))
-		{
-			ST->ConOut->OutputString(ST->ConOut, L"    [FAILED] Volume Opened With An Error\n\r");
-			continue;
-		}
-		ST->ConOut->OutputString(ST->ConOut, L"    [SUCCESS]\n\r");
-
-		ST->ConOut->OutputString(ST->ConOut, L"Loading Asset");
-		kernel_file = fops_open_file(root, kernel_fname, EFI_FILE_MODE_READ, 0);
-		if (kernel_file == NULL)
-		{
-			ST->ConOut->OutputString(ST->ConOut, L"    [FAILED] Load Asset\n\r");
-			continue;
-		}
-		ST->ConOut->OutputString(ST->ConOut, L"    [SUCCESS]\n\r");
-
-		return kernel_file;
-	}
-	ST->ConOut->OutputString(ST->ConOut, L"    [FAILED] Asset Not Found\n\r");
-	return (void*)0;
+// --- Simple Page Allocation and Memory Copy Helper ---
+void* allocate_page(void) {
+    UINTN addr = 0;
+    EFI_STATUS status = gBootServices->AllocatePages(AllocateAnyPages, EfiLoaderData, 1, &addr);
+    if (EFI_ERROR(status)) {
+         st->ConOut->OutputString(st->ConOut, L"ERROR: allocate_page() failed\n");
+         while (1);
+    }
+    void *page = (void*)addr;
+    gBootServices->SetMem(page, PAGE_SIZE, 0);
+    return page;
 }
 
-/*static _Bool valid_elf64_header(Elf64_Ehdr* elf_hdr) {
-	// Check header
-	if (elf_hdr->e_ident[EI_MAG0] != ELFMAG0 ||
-		elf_hdr->e_ident[EI_MAG1] != ELFMAG1 ||
-		elf_hdr->e_ident[EI_MAG2] != ELFMAG2 ||
-		elf_hdr->e_ident[EI_MAG3] != ELFMAG3) return 0;
-
-	// Check for 64-bit
-	if (elf_hdr->e_ident[EI_CLASS] != ELFCLASS64) return 0;
-
-	// Check for System V (Unix) ABI
-	if (elf_hdr->e_ident[EI_OSABI] != ELFOSABI_NONE &&
-		elf_hdr->e_ident[EI_OSABI] != ELFOSABI_GNU) return 0;
-
-	// Check for executable file
-	if (elf_hdr->e_type != ET_EXEC) return 0;
-
-	// Check for x86_64 architecture
-	if (elf_hdr->e_machine != EM_X86_64) return 0;
-
-	// All valid
-	return 1;
-}*/
-
-/*
-gcc -I/home/camdenp/ModernOS/PonchoOS-main/gnu-efi//bootloader -I/home/camdenp/ModernOS/PonchoOS-main/gnu-efi//bootloader/../inc -I/home/camdenp/ModernOS/PonchoOS-main/gnu-efi//bootloader/../inc/x86_64 -I/home/camdenp/ModernOS/PonchoOS-main/gnu-efi//bootloader/../inc/protocol -Wno-error=pragmas -mno-red-zone -mno-avx -fpic  -g -O2 -Wall -Wextra -Werror -fshort-wchar -fno-strict-aliasing -ffreestanding -fno-stack-protector -fno-stack-check -fno-stack-check -fno-merge-all-constants -Wno-error=unused-parameter -Wno-error=unused-variable -DCONFIG_x86_64 -DGNU_EFI_USE_MS_ABI -maccumulate-outgoing-args --std=c11 -D__KERNEL__ -I/usr/src/sys/build/include -c /home/camdenp/ModernOS/PonchoOS-main/gnu-efi//bootloader/main.c -o main.o
-ld -nostdlib --warn-common --no-undefined --fatal-warnings --build-id=sha1 -shared -Bsymbolic -L../lib -L../gnuefi ../gnuefi/crt0-efi-x86_64.o main.o -o main.so -lefi -lgnuefi /usr/lib/gcc/x86_64-linux-gnu/9/libgcc.a -T /home/camdenp/ModernOS/PonchoOS-main/gnu-efi//bootloader/../gnuefi/elf_x86_64_efi.lds
-objcopy -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel \
-	    -j .rela -j .rel.* -j .rela.* -j .rel* -j .rela* \
-	    -j .reloc --target efi-app-x86_64 main.so main.efi
-
-*/
-
-static UINTN round_up(UINTN x, UINTN align) {
-    return (x + align - 1) & -align;
+void copy_mem(void *dest, const void *src, UINTN size) {
+    const UINT8 *s = src;
+    UINT8 *d = dest;
+    for (UINTN i = 0; i < size; i++) {
+        d[i] = s[i];
+    }
 }
 
-static inline void
-stosb(void *addr, int data, int cnt)
-{
-  asm volatile("cld; rep stosb" :
-               "=D" (addr), "=c" (cnt) :
-               "0" (addr), "1" (cnt), "a" (data) :
-               "memory", "cc");
+// --- Identity Mapping Helpers ---
+// Map a single 2MB page for identity mapping.
+static void map_identity_page(uint64_t *pml4, uint64_t phys_addr) {
+    uint64_t aligned_addr = phys_addr & ~(0x200000ULL - 1);
+    // For identity mapping, virtual address == physical address.
+    uint64_t vaddr = aligned_addr;
+    uint64_t pml4_index = (vaddr >> 39) & 0x1FF;
+    uint64_t pdpt_index = (vaddr >> 30) & 0x1FF;
+    uint64_t pd_index   = (vaddr >> 21) & 0x1FF;
+    
+    uint64_t *pdpt;
+    if (!(pml4[pml4_index] & PAGE_PRESENT)) {
+        pdpt = (uint64_t*) allocate_page();
+        pml4[pml4_index] = (uint64_t)pdpt | PAGE_PRESENT | PAGE_WRITE;
+    } else {
+        pdpt = (uint64_t*)(pml4[pml4_index] & 0xFFFFFFFFFFFFF000ULL);
+    }
+    
+    uint64_t *pd;
+    if (!(pdpt[pdpt_index] & PAGE_PRESENT)) {
+        pd = (uint64_t*) allocate_page();
+        pdpt[pdpt_index] = (uint64_t)pd | PAGE_PRESENT | PAGE_WRITE;
+    } else {
+        pd = (uint64_t*)(pdpt[pdpt_index] & 0xFFFFFFFFFFFFF000ULL);
+    }
+    
+    pd[pd_index] = aligned_addr | PAGE_PRESENT | PAGE_WRITE | PAGE_PSE;
 }
 
-EFI_STATUS load_kernel(CHAR16* kernel_fname, OUT void** entry_address) {
-	EFI_FILE* Kernel = NULL;
-
-	Kernel = fops_open_kernel(kernel_fname);
-
-	ST->ConOut->OutputString(ST->ConOut, L"Loading ELF Header\n\r");
-
-	// load the elf header from the kernel
-	Elf64_Ehdr header;
-	{
-		UINTN FileInfoSize;
-		EFI_FILE_INFO *FileInfo;
-		Kernel->GetInfo(Kernel, &gEfiFileInfoGuid, &FileInfoSize, NULL);
-		Status = ST->BootServices->AllocatePool(EfiLoaderData, FileInfoSize, (void**)&FileInfo);
-		if (EFI_ERROR(Status))
-			PANIC(L"Error Reading Header");
-		
-		ST->ConOut->OutputString(ST->ConOut, L"EEER\n\r");
-		Kernel->GetInfo(Kernel, &gEfiFileInfoGuid, &FileInfoSize, (void**)&FileInfo);
-		ST->ConOut->OutputString(ST->ConOut, L"DSSD\n\r");
-		UINTN size = sizeof(header);
-		ST->ConOut->OutputString(ST->ConOut, L"HDSJ\n\r");
-		Kernel->Read(Kernel, &size, &header);
-		ST->ConOut->OutputString(ST->ConOut, L"OKDS\n\r");
-	}
-
-	ST->ConOut->OutputString(ST->ConOut, L"Verfiying ELF Binary\n\r");
-	// verify the kernel binary
-	if (
-		memcmp(&header.e_ident[EI_MAG0], ELFMAG, SELFMAG) != 0 ||
-		header.e_ident[EI_CLASS] != ELFCLASS64 ||
-		header.e_ident[EI_DATA] != ELFDATA2LSB ||
-		header.e_type != ET_EXEC ||
-		header.e_machine != EM_AMD64 ||
-		header.e_version != EV_CURRENT
-	) {
-		ST->ConOut->OutputString(ST->ConOut, L"kernel format is bad\r\n");
-		return -1;
-	}
-
-	ST->ConOut->OutputString(ST->ConOut, L"Loading ELF Program Headers\n\r");
-	// load the kernel segment headers
-	Elf64_Phdr *phdrs;
-	{
-		Kernel->SetPosition(Kernel, header.e_phoff);
-		UINTN size = header.e_phnum * header.e_phentsize;
-		Status = ST->BootServices->AllocatePool(EfiLoaderData, size, (void**)&phdrs);
-		if (EFI_ERROR(Status))
-			PANIC(L"Error Reading Program Headers!");
-			
-		Kernel->Read(Kernel, &size, phdrs);
-	}
-
-	ST->ConOut->OutputString(ST->ConOut, L"Loading ELF Binary\n\r");
-	// load the actual kernel binary based on its segment headers
-	for (
-		Elf64_Phdr *phdr = phdrs;
-		(char*)phdr < (char*)phdrs + header.e_phnum * header.e_phentsize;
-		phdr = (Elf64_Phdr*)((char*)phdr + header.e_phentsize)
-	) {
-		switch (phdr->p_type)
-		{
-			case PT_LOAD:
-			{
-				UINTN /*Elf64_Addr*/ segment = phdr->p_paddr;
-				if (phdr->p_filesz != 0)
-				{
-					int pages = (phdr->p_memsz + 0x1000 - 1) / 0x1000; // round up
-					Status = ST->BootServices->AllocatePages(AllocateAddress, EfiLoaderData, pages, &segment);
-					if (EFI_ERROR(Status))
-						PANIC(L"Error Allocating Pages for Kernel!");
-					
-					Kernel->SetPosition(Kernel, phdr->p_offset);
-					UINTN size = phdr->p_filesz;
-					Kernel->Read(Kernel, &size, (void*)segment);
-				}
-				if (phdr->p_filesz < phdr->p_memsz)
-					stosb((uint8_t*)phdr->p_paddr + phdr->p_filesz, 0, phdr->p_memsz - phdr->p_filesz);
-			}
-		}
-	}
-ST->ConOut->OutputString(ST->ConOut, L"ehyuh");
-
-	ST->ConOut->OutputString(ST->ConOut, L"Reading ELF Entry Address\n\r");
-	*entry_address = (void*)header.e_entry;
-
-	ST->ConOut->OutputString(ST->ConOut, L"Retutning From ELF Read Function\n\r");
-	return EFI_SUCCESS;
+// Identity map a physical address range using 2MB pages.
+static void map_identity_range(uint64_t *pml4, uint64_t phys_start, uint64_t phys_end) {
+    uint64_t start = phys_start & ~(0x200000ULL - 1);
+    uint64_t end = (phys_end + 0x200000ULL - 1) & ~(0x200000ULL - 1);
+    for (uint64_t addr = start; addr < end; addr += 0x200000ULL) {
+        map_identity_page(pml4, addr);
+    }
 }
 
-// ##############################
-//			  vesa.c
-// ##############################
-#define GRAPHICS_MOST_APPROPRIATE_W 3840
-#define GRAPHICS_MOST_APPROPRIATE_H 2160
+// --- Build New Page Tables (without switching CR3) ---
+// This function builds the new page table structures and returns the pointer
+// to the PML4. It maps an extended identity range (0 to 1GB) plus the bootloader’s region,
+// and it sets up the higher-half mapping for the kernel.
+static uint64_t *build_page_tables(uint64_t kphys_start, uint64_t kphys_size, uint64_t kvirt_base,
+                              uint64_t boot_base, uint64_t boot_size) {
+    st->ConOut->OutputString(st->ConOut, L"Building page tables...\n");
+    
+    uint64_t *pml4 = (uint64_t *)allocate_page();
 
-struct graphicsInfo {
-	EFI_GRAPHICS_OUTPUT_PROTOCOL* protocol;
-	EFI_GRAPHICS_OUTPUT_MODE_INFORMATION  outputMode;
-	void* bufferBase;
-	size_t                                 bufferSize;
-} graphicsInfo;
+    // Extended identity mapping (0 to 1GB) to cover bootloader pages, page tables, etc.
+    map_identity_range(pml4, 0, 1ULL * 1024 * 1024 * 1024);
+    // Also explicitly map the bootloader’s own region.
+    map_identity_range(pml4, boot_base, boot_base + boot_size);
 
-EFI_STATUS Vesa_Select_Mode(EFI_GRAPHICS_OUTPUT_PROTOCOL* graphics, OUT unsigned int* mode)
-{
-	*mode = graphics->Mode->Mode;
-	EFI_GRAPHICS_OUTPUT_MODE_INFORMATION most_approporiate_info;
-	EFI_GRAPHICS_OUTPUT_MODE_INFORMATION* info;
-	UINTN size;
-
-	// Init info of current mode
-	Status = graphics->QueryMode(graphics, *mode, &size, &info);
-	//ASSERT_EFI_STATUS(Status, L"select_mode");
-	most_approporiate_info = *info;
-
-	for (UINT32 i = 0; i < graphics->Mode->MaxMode; i += 1)
-	{
-		Status = graphics->QueryMode(graphics, i, &size, &info);
-		//ASSERT_EFI_STATUS(Status, L"select_mode");
-		if (info->PixelFormat != PixelRedGreenBlueReserved8BitPerColor &&
-			info->PixelFormat != PixelBlueGreenRedReserved8BitPerColor) continue;
-		if (info->HorizontalResolution > GRAPHICS_MOST_APPROPRIATE_W ||
-			info->VerticalResolution > GRAPHICS_MOST_APPROPRIATE_H) continue;
-
-		if (info->VerticalResolution == GRAPHICS_MOST_APPROPRIATE_H &&
-			info->HorizontalResolution == GRAPHICS_MOST_APPROPRIATE_W)
-		{
-			most_approporiate_info = *info;
-			*mode = i;
-			break;
-		}
-		if (info->VerticalResolution > most_approporiate_info.VerticalResolution)
-		{
-			most_approporiate_info = *info;
-			*mode = i;
-		}
-	}
-	graphicsInfo.outputMode = most_approporiate_info;
-	return EFI_SUCCESS;
+    // Higher-half mapping for the kernel.
+    uint64_t *pdpt_kernel = (uint64_t *)allocate_page();
+    // Place the kernel mapping in PML4 entry 511 so that virtual addresses start at KERNEL_VIRTUAL.
+    pml4[511] = (uint64_t)pdpt_kernel | PAGE_PRESENT | PAGE_WRITE;
+    uint64_t num_pages = (kphys_size + 0x200000ULL - 1) / 0x200000ULL;
+    for (uint64_t i = 0; i < num_pages; i++) {
+        uint64_t vaddr = kvirt_base + i * 0x200000ULL;
+        uint64_t pdpt_index = (vaddr >> 30) & 0x1FF;
+        uint64_t pd_index   = (vaddr >> 21) & 0x1FF;
+        uint64_t *pd;
+        if ((pdpt_kernel[pdpt_index] & 0xFFFFFFFFFFFFF000ULL) == 0) {
+            pd = (uint64_t *)allocate_page();
+            pdpt_kernel[pdpt_index] = (uint64_t)pd | PAGE_PRESENT | PAGE_WRITE;
+        } else {
+            pd = (uint64_t *)(pdpt_kernel[pdpt_index] & 0xFFFFFFFFFFFFF000ULL);
+        }
+        uint64_t phys_addr = kphys_start + i * 0x200000ULL;
+        pd[pd_index] = phys_addr | PAGE_PRESENT | PAGE_WRITE | PAGE_PSE;
+    }
+    
+    return pml4;
 }
 
-EFI_STATUS Vesa_Init(EFI_SYSTEM_TABLE* ST)
-{
-	EFI_GRAPHICS_OUTPUT_PROTOCOL* graphics;
-	EFI_GUID graphics_proto = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
-	ST->BootServices->LocateProtocol(&graphics_proto, (void*)0, (void**)&graphics);
-
-	unsigned int new_mode;
-	Status = Vesa_Select_Mode(graphics, &new_mode);
-	//ASSERT_EFI_STATUS(Status, L"init_grapphics select_mode");
-	Status = graphics->SetMode(graphics, new_mode);
-	//ASSERT_EFI_STATUS(Status, L"init_graphics SetMode");
-	graphicsInfo.protocol = graphics;
-	graphicsInfo.bufferBase = (void*)graphics->Mode->FrameBufferBase;
-	graphicsInfo.bufferSize = graphics->Mode->FrameBufferSize;
-
-	return EFI_SUCCESS;
+// --- Two-Stage Trampoline Code ---
+// This is the second-stage entry point. It is placed into its own section
+// so that we can locate and copy it into an identity-mapped area.
+__attribute__((section(".stage2"), used))
+void stage2_main(flexboot_header_t *header, uint64_t final_entry, uint64_t *new_pml4) {
+    // Now that UEFI services are gone, switch to the new page tables.
+    __asm__ volatile("mov %0, %%cr3" :: "r"(new_pml4));
+    
+    // Jump to the kernel's entry point.
+    typedef void (*KernelMainFunc)(flexboot_header_t*);
+    KernelMainFunc KernelStart = (KernelMainFunc) final_entry;
+    KernelStart(header);
+    
+    // In case the kernel returns (it shouldn't), halt.
+    while (1) { __asm__("hlt"); }
 }
 
+// Extern symbols to mark the boundaries of the stage2 code.
+// (Ensure your linker script defines _stage2_start and _stage2_end accordingly.)
+extern char _stage2_start[];
+extern char _stage2_end[];
+
+// --- Helper to Compare GUIDs ---
 _Bool guids_match(EFI_GUID guid1, EFI_GUID guid2) {
-  _Bool first_part_good =
-      (guid1.Data1 == guid2.Data1 && guid1.Data2 == guid2.Data2 &&
-       guid1.Data3 == guid2.Data3);
-
-  if (!first_part_good) return 0;
-
-  for (int i = 0; i < 8; ++i) {
-    if (guid1.Data4[i] != guid2.Data4[i]) return 0;
-  }
-
-  return 1;
+	_Bool first_part_good =
+		(guid1.Data1 == guid2.Data1 && guid1.Data2 == guid2.Data2 &&
+		 guid1.Data3 == guid2.Data3);
+  
+	if (!first_part_good) return 0;
+  
+	for (int i = 0; i < 8; ++i) {
+	  if (guid1.Data4[i] != guid2.Data4[i]) return 0;
+	}
+  
+	return 1;
 }
 
-EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE* SystemTable)
-{
-	ST = SystemTable;
-	ST->ConOut->ClearScreen(ST->ConOut);
-	ST->BootServices->SetWatchdogTimer(0, 0, 0, NULL);
+// --- Global variables to track kernel physical bounds ---
+static uint64_t kernel_phys_min = ~0ULL;
+static uint64_t kernel_phys_max = 0;
 
-	flexboot_header_t* boot_hdr = (void*)0;
+// --- EFI Entry Point (Stage 1) ---
+EFI_STATUS efi_main (EFI_HANDLE IH, EFI_SYSTEM_TABLE* ST) {
+    EFI_STATUS status;
+    gImageHandle = IH;
+    st = ST;
+    gBootServices = ST->BootServices;
+    
+    st->ConOut->OutputString(st->ConOut, L"!==-- ModernOS BOOTLOADER --==!\n");
 
-	// Enter Graphics Mode
-	Vesa_Init(ST);
-	ST->ConOut->OutputString(ST->ConOut, L"VESA Initialized\n\r");
+    // --- Load ModernOS Directory ---
+    EFI_FILE* bin = LoadFile(NULL, L"ModernOS");
+    if (bin == NULL) {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Could not load directory: \"/ModernOS/\"\n");
+        return EFI_LOAD_ERROR;
+    }
+    st->ConOut->OutputString(st->ConOut, L"Directory \"/ModernOS/\" loaded successfully\n");
 
-	// Load the kernel ELF file into memory and get the entry address
-	void* kernel_main_addr = NULL;
-	Status = load_kernel(L"\\kernel.elf", &kernel_main_addr);
-	if (Status != EFI_SUCCESS) {
-		ST->ConOut->OutputString(ST->ConOut, L"Error loading kernel:");
-		return EFI_ABORTED;
-	}
-	
-	EFI_CONFIGURATION_TABLE *configuration_tables = SystemTable->ConfigurationTable;
-	
-	void *rsdp_ptr = NULL;
-	static EFI_GUID acpi_guid = ACPI_20_TABLE_GUID;
-	for (unsigned i = 0; i < SystemTable->NumberOfTableEntries; ++i) {
-		if (guids_match(acpi_guid, configuration_tables[i].VendorGuid)) {
-			ST->ConOut->OutputString(ST->ConOut, L"Found ACPI Table pointer");
-			rsdp_ptr = configuration_tables[i].VendorTable;
-		}
-	}
+    // --- Load Kernel ---
+    EFI_FILE* kernel = LoadFile(bin, L"kernel.elf");
+    if (kernel == NULL) {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Could not load kernel from /ModernOS/kernel.elf\n");
+        return EFI_LOAD_ERROR;
+    }
+    st->ConOut->OutputString(st->ConOut, L"Kernel has been found\n");
+    bin->Close(bin);
 
-	// Verify xdsp_address
-	if (rsdp_ptr == (void*)0)
-		ST->ConOut->OutputString(ST->ConOut, L"No RSDP Table Found!");
-	ST->ConOut->OutputString(ST->ConOut, L"RSDP Table Found!\n\r");
-	
-	ST->ConOut->OutputString(ST->ConOut, L"Loading Memory Map\n\r");
+    // --- Load Fonts Directory ---
+    bin = LoadFile(NULL, L"ModernOS");
+    if (bin == NULL) {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Could not load ModernOS directory: \"/ModernOS/\"\n");
+        return EFI_LOAD_ERROR;
+    }
+    st->ConOut->OutputString(st->ConOut, L"Directory \"/ModernOS/\" loaded successfully\n");
+    bin = LoadFile(bin, L"fonts");
+    if (bin == NULL) {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Could not load fonts directory: \"/ModernOS/\"\n");
+        return EFI_LOAD_ERROR;
+    }
+    st->ConOut->OutputString(st->ConOut, L"Directory \"/ModernOS/fonts/\" loaded successfully\n");
 
-	// Get Memory Map
-	void* memoryMap = (void*)0;
-	UINTN mapSize = 0;
-	UINTN mapKey = 0;
-	UINTN descriptorSize = 0;
-	unsigned int descriptorVersion = 0;
+    // --- Load Default Font ---
+    psf1_font* dflt_font = LoadPSF1Font(bin, L"dfltfont.psf");
+    if (dflt_font == NULL) {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Failed to load default font\n");
+    } else {
+        st->ConOut->OutputString(st->ConOut, L"Default font loaded successfully\n");
+        st->ConOut->OutputString(st->ConOut, L"  Mode and Character Size info omitted\n");
+    }
+    bin->Close(bin);
 
-	Status = ST->BootServices->GetMemoryMap(&mapSize, memoryMap, &mapKey, &descriptorSize, &descriptorVersion);
-	Status = ST->BootServices->AllocatePool(EfiLoaderData, mapSize, (void**)&memoryMap);
-	Status = ST->BootServices->GetMemoryMap(&mapSize, memoryMap, &mapKey, &descriptorSize, &descriptorVersion);
-	
-	/*
-	Status = uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &mapSize, memoryMap, (void*)0, &descriptorSize, (void*)0);
+    // --- Load and Verify Kernel ELF Header ---
+    Elf64_Ehdr elf_header;
+    UINTN elfHeaderSize = sizeof(elf_header);
+    kernel->Read(kernel, &elfHeaderSize, &elf_header);
+    if (memcmp(&elf_header.e_ident[EI_MAG0], ELFMAG, SELFMAG) != 0 ||
+        elf_header.e_ident[EI_CLASS] != ELFCLASS64 ||
+        elf_header.e_ident[EI_DATA] != ELFDATA2LSB ||
+        elf_header.e_type != ET_EXEC ||
+        elf_header.e_machine != EM_X86_64 ||
+        elf_header.e_version != EV_CURRENT)
+    {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Invalid kernel format\n");
+        return EFI_LOAD_ERROR;
+    }
+    st->ConOut->OutputString(st->ConOut, L"Kernel format verified successfully\n");
 
-	mapSize += 2 * descriptorSize;
+    // --- Load Program Headers ---
+    Elf64_Phdr* program_hdrs;
+    kernel->SetPosition(kernel, elf_header.e_phoff);
+    UINTN programHdrTableSize = elf_header.e_phnum * elf_header.e_phentsize;
+    status = gBootServices->AllocatePool(EfiLoaderData, programHdrTableSize, (void**)&program_hdrs);
+    if (EFI_ERROR(status) || program_hdrs == 0) {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Failed to allocate memory for program headers\n");
+        return status;
+    }
+    kernel->Read(kernel, &programHdrTableSize, program_hdrs);
 
-	Status = uefi_call_wrapper(SystemTable->BootServices->AllocatePool, 3, EfiLoaderData, mapSize, (void**)&memoryMap);
-	Status = uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &mapSize, memoryMap, &mapKey, &descriptorSize, (unsigned int*)&descriptorVersion);
-	*/
+    // --- Load Each PT_LOAD Segment ---
+    for (Elf64_Phdr* phdr = program_hdrs;
+         (char*)phdr < (char*)program_hdrs + elf_header.e_phnum * elf_header.e_phentsize;
+         phdr = (Elf64_Phdr*)((char*)phdr + elf_header.e_phentsize))
+    {
+        if (phdr->p_type == PT_LOAD) {
+            UINTN pages = (phdr->p_memsz + PAGE_SIZE - 1) / PAGE_SIZE;
+            UINTN desired_addr = (UINTN)(phdr->p_vaddr - KERNEL_VIRTUAL + KERNEL_PHYSICAL);
+            EFI_MEMORY_TYPE MemoryType = EfiLoaderData;
+            if (phdr->p_flags & PF_X) {
+                MemoryType = EfiLoaderCode;
+            }
+            status = gBootServices->AllocatePages(AllocateAddress, MemoryType, pages, &desired_addr);
+            if (EFI_ERROR(status)) {
+                st->ConOut->OutputString(st->ConOut, L"Warning: Fixed address allocation failed; falling back\n");
+                desired_addr = 0;
+                status = gBootServices->AllocatePages(AllocateAnyPages, MemoryType, pages, &desired_addr);
+                if (EFI_ERROR(status)) {
+                    st->ConOut->OutputString(st->ConOut, L"ERROR: Failed to allocate pages for kernel segment\n");
+                    return status;
+                }
+            }
+            if (desired_addr < kernel_phys_min)
+                kernel_phys_min = desired_addr;
+            if ((uint64_t)desired_addr + pages * PAGE_SIZE > kernel_phys_max)
+                kernel_phys_max = desired_addr + pages * PAGE_SIZE;
+            kernel->SetPosition(kernel, phdr->p_offset);
+            UINTN fileSize = phdr->p_filesz;
+            kernel->Read(kernel, &fileSize, (VOID*)desired_addr);
+            if (phdr->p_filesz < phdr->p_memsz) {
+                gBootServices->SetMem((VOID*)(desired_addr + phdr->p_filesz),
+                                      phdr->p_memsz - phdr->p_filesz, 0);
+            }
+            st->ConOut->OutputString(st->ConOut, L"LOADED: Kernel segment loaded\n");
+        }
+    }
+    st->ConOut->OutputString(st->ConOut, L"Kernel loaded successfully\n");
 
-	Status = SystemTable->BootServices->ExitBootServices(ImageHandle, mapKey);
-	if (EFI_ERROR(Status))
-		return EFI_SUCCESS;
-	
-	boot_hdr->memoryMap = memoryMap;
-	boot_hdr->mapSize = mapSize;
-	boot_hdr->mapKey = mapKey;
-	boot_hdr->descriptorSize = descriptorSize;
-	boot_hdr->descriptorVersion = descriptorVersion;
-	
-	boot_hdr->fb = graphicsInfo.bufferBase;
-	boot_hdr->fb_w = graphicsInfo.outputMode.HorizontalResolution;
-	boot_hdr->fb_h = graphicsInfo.outputMode.VerticalResolution;
-	boot_hdr->fb_bpp = graphicsInfo.outputMode.PixelFormat;
-	boot_hdr->fb_pps = graphicsInfo.outputMode.PixelsPerScanLine;
-	boot_hdr->fb_sz = graphicsInfo.bufferSize;
-	
-	boot_hdr->rsdp_addr = (unsigned long long*)rsdp_ptr;
+    // --- Initialize GOP ---
+    framebuffer* gop_fb = InitializeGOP();
+    if (gop_fb == NULL) {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Failed to initialize GOP\n");
+        return EFI_LOAD_ERROR;
+    }
+    st->ConOut->OutputString(st->ConOut, L"GOP Info: (details omitted)\n");
 
-	// Jump to kernel
-	((__attribute__((sysv_abi)) void (*)(flexboot_header_t*))kernel_main_addr)(
-		boot_hdr
-	);
+    // --- Get EFI Memory Map ---
+    EFI_MEMORY_DESCRIPTOR* Map = NULL;
+    UINTN MapSize = 0, MapKey = 0;
+    UINTN DescriptorSize = 0;
+    UINT32 DescriptorVersion = 0;
+    gBootServices->GetMemoryMap(&MapSize, Map, &MapKey, &DescriptorSize, &DescriptorVersion);
+    MapSize += DescriptorSize * 2;  // margin
+    gBootServices->AllocatePool(EfiLoaderData, MapSize, (void**)&Map);
+    gBootServices->GetMemoryMap(&MapSize, Map, &MapKey, &DescriptorSize, &DescriptorVersion);
+    st->ConOut->OutputString(st->ConOut, L"EFI memory map successfully parsed\n");
 
-	PANIC(L"Error Loading Kernel");
+    // --- Locate ACPI 2.0 RSDP ---
+    EFI_CONFIGURATION_TABLE* ConfigTable = st->ConfigurationTable;
+    void* rsdp = NULL;
+    EFI_GUID ACPI2TableGuid = ACPI_20_TABLE_GUID;
+    for (UINTN index = 0; index < st->NumberOfTableEntries; index++) {
+        if (guids_match(ConfigTable[index].VendorGuid, ACPI2TableGuid)) {
+            if (strcmp((CHAR8*)"RSD PTR ", (CHAR8*)ConfigTable[index].VendorTable, 8)) {
+                st->ConOut->OutputString(st->ConOut, L"Found ACPI RSDP\n");
+                rsdp = ConfigTable[index].VendorTable;
+            }
+        }
+    }
 
-	return EFI_SUCCESS;
+    // --- Retrieve Bootloader's Own Location ---
+    EFI_LOADED_IMAGE_PROTOCOL* loadedImage = NULL;
+    status = gBootServices->HandleProtocol(gImageHandle,
+                                             &gEfiLoadedImageProtocolGuid,
+                                             (void**)&loadedImage);
+    if (EFI_ERROR(status) || loadedImage == NULL) {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Failed to retrieve bootloader image info\n");
+        return EFI_LOAD_ERROR;
+    }
+    uint64_t bootloader_base = (uint64_t)loadedImage->ImageBase;
+    uint64_t bootloader_size = loadedImage->ImageSize;
+    st->ConOut->OutputString(st->ConOut, L"Bootloader image info retrieved\n");
+
+    // --- Build New Page Tables (but do not switch CR3 yet) ---
+    uint64_t *new_pml4 = build_page_tables(kernel_phys_min, kernel_phys_max - kernel_phys_min,
+                                            KERNEL_VIRTUAL, bootloader_base, bootloader_size);
+
+    // --- Build flexboot_header_t to Pass to the Kernel ---
+    flexboot_header_t header;
+    header.memoryMap = Map;
+    header.mapSize = MapSize;
+    header.mapKey = MapKey;
+    header.descriptorSize = DescriptorSize;
+    header.descriptorVersion = DescriptorVersion;
+    header.fb = gop_fb;
+    header.font = dflt_font;
+    header.rsdp_addr = (unsigned long long*) rsdp;
+    header.kernel_offset = KERNEL_VIRTUAL - KERNEL_PHYSICAL;
+
+    // --- Compute Final Kernel Entry Point ---
+    UINT64 final_entry = KERNEL_VIRTUAL + (elf_header.e_entry - KERNEL_PHYSICAL);
+    st->ConOut->OutputString(st->ConOut, L"Kernel entry point computed\n");
+
+    // --- Prepare Stage 2 Trampoline ---
+    // Locate stage2 code boundaries from linker symbols.
+    UINTN stage2_size = (UINTN)(_stage2_end - _stage2_start);
+    UINTN stage2_pages = (stage2_size + PAGE_SIZE - 1) / PAGE_SIZE;
+    VOID* stage2_buffer;
+    status = gBootServices->AllocatePages(AllocateAnyPages, EfiLoaderData, stage2_pages, (UINTN*)&stage2_buffer);
+    if (EFI_ERROR(status)) {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: Failed to allocate pages for stage2\n");
+        return status;
+    }
+    copy_mem(stage2_buffer, _stage2_start, stage2_size);
+
+    st->ConOut->OutputString(st->ConOut, L"Stage2 loaded. Exiting boot services...\n");
+    status = gBootServices->ExitBootServices(gImageHandle, MapKey);
+    if (EFI_ERROR(status)) {
+        st->ConOut->OutputString(st->ConOut, L"ERROR: ExitBootServices failed\n");
+        return status;
+    }
+
+    // --- Jump to Stage 2 ---
+    // The prototype of stage2_main is:
+    //    void stage2_main(flexboot_header_t*, uint64_t final_entry, uint64_t* new_pml4)
+    ((void (*)(flexboot_header_t*, uint64_t, uint64_t*)) stage2_buffer)(&header, final_entry, new_pml4);
+
+    // Should never return.
+    while (1) { __asm__("hlt"); }
+    return EFI_SUCCESS;
 }
-
-/*
-	// Get the required memory pool size for the memory map...
-	result = uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &efiMemoryMap.mapSize, efiMemoryMap.memoryMap, (void*)0, &efiMemoryMap.descriptorSize, (void*)0);
-
-	// Allocating the pool creates at least one new descriptor... for the chunk of memory changed to EfiLoaderData
-	// Not sure that UEFI firmware must allocate on a memory type boundry... if not, then two descriptors might be created
-	efiMemoryMap.mapSize += 2 * efiMemoryMap.descriptorSize;
-
-	// Get a pool of memory to hold the map...
-	result = uefi_call_wrapper(SystemTable->BootServices->AllocatePool, 3, EfiLoaderData, efiMemoryMap.mapSize, (void**)&efiMemoryMap.memoryMap);
-
-	// Get the actual memory map...
-	result = uefi_call_wrapper(SystemTable->BootServices->GetMemoryMap, 5, &efiMemoryMap.mapSize, efiMemoryMap.memoryMap, &efiMemoryMap.mapKey, &efiMemoryMap.descriptorSize, (unsigned int*)&efiMemoryMap.descriptorVersion);
-
-	// ExitBootServices
-	result = uefi_call_wrapper(SystemTable->BootServices->ExitBootServices, 2, ImageHandle, efiMemoryMap.mapKey);
-	if (EFI_ERROR(result))
-		return EFI_SUCCESS;
-*/
-
-/*
-	// Jump to kernel
-	((KernelMainFunc)kernel_main_addr)(1,
-		(unsigned long long*)graphicsInfo.bufferBase,
-		(unsigned long long)graphicsInfo.bufferSize,
-		(unsigned long long)graphicsInfo.outputMode.HorizontalResolution,
-		(unsigned long long)graphicsInfo.outputMode.VerticalResolution,
-		(unsigned long long)graphicsInfo.outputMode.PixelFormat,
-		(unsigned long long)graphicsInfo.outputMode.PixelsPerScanLine);
-*/

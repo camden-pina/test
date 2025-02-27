@@ -124,8 +124,23 @@ void vmem_init(uint64_t fb_base, uint64_t fb_size)
         uint64_t fbBase = fb_base;
         uint64_t fbSize = fb_size + 0x1000;
         pmm_pages_lock((void*)fbBase, fbSize/ 0x1000 + 1);
-        
-        asm volatile ("mov %0, %%cr3" : : "r" (PML4));
+
+        uint64_t cr4;
+        __asm__ volatile("mov %%cr4, %0" : "=r"(cr4));
+        cr4 |= (1 << 5); // Set PAE
+        __asm__ volatile("mov %0, %%cr4" : : "r"(cr4));
+
+        uint64_t efer;
+        __asm__ volatile("rdmsr" : "=A"(efer) : "c"(0xC0000080));
+        efer |= (1 << 8); // Set LME
+        __asm__ volatile("wrmsr" : : "c"(0xC0000080), "A"(efer));
+        // drawRect(0, 0, 100, 200, 0xAAAAFFFF);
+        uint64_t pml4_phys = (uint64_t)PML4 & 0xFFFFFFFFFFFFF000ULL;
+        __asm__ volatile("cli");
+        __asm__ __volatile__("movq %0, %%cr3" : : "r"(PML4) : "memory");
+	__asm__ volatile("sti");
+//        __asm__ volatile ("movq %0, %%cr3" : : "r" (pml4_phys));
+        // drawRect(0, 0, 2000, 1000, 0xAAAA00FF);
 }
 
 static void vmem_set_flag(struct page_directory_entry_t* entry, enum PT_FLAG flag, bool enabled)

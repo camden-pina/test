@@ -3,8 +3,8 @@
 #include <interrupts/ioapic.h>
 #include <interrupts/lapic.h>
 #include <acpi/tables.h>
-
-#include <stdio.h>
+#include <printf.h>
+#include <panic.h>
 
 #define IOAPICID    0x00
 #define IOAPICVER   0x01
@@ -167,7 +167,7 @@ _Bool load_ioapic_address(void) {
             {
                 apic_local_t* cpu = (apic_local_t*)madt_entry;
 
-                printf("CPU local APID ID 0x%02%x ACPI ID 0x%02%x flags 0x%08%x\n\r", cpu->apicID, cpu->processorID, cpu->flags);
+                kprintf("CPU local APID ID 0x%02%x ACPI ID 0x%02%x flags 0x%08%x\n\r", cpu->apicID, cpu->processorID, cpu->flags);
 
                 if (cpu->flags & 0x01)
                     cpu_count++;
@@ -233,13 +233,13 @@ _Bool load_ioapic_address(void) {
             }
             default:
             {
-                printf("Unrecognized Entry in MADT : type 0%x\n\r", madt_entry->type);
+                kprintf("Unrecognized Entry in MADT : type 0%x\n\r", madt_entry->type);
                 break;
             }
         }
         i += madt_entry->length;
     }
     
-    printf("CPU Count: %l\n\r", cpu_count);
+    kprintf("CPU Count: %l\n\r", cpu_count);
     return found;
 }

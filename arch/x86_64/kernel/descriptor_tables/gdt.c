@@ -1,6 +1,6 @@
 #include <descriptor_tables/gdt.h>
-
-#include <stdio.h>
+#include <printf.h>
+#include <panic.h>
 
 typedef struct segment_descriptor_t
 {

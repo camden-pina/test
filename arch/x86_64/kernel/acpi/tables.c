@@ -1,5 +1,6 @@
 #include <acpi/tables.h>
-#include <stdio.h>
+#include <printf.h>
+#include <panic.h>
 
 extern acpi_xsdt_t* xsdt;
 

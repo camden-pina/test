@@ -1,5 +1,4 @@
 #include <mm/bitmap.h>
-#include <stdio.h>
 
 uint8_t* bitmap_start;
 uint64_t bitmap_size;

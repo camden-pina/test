@@ -1,6 +1,9 @@
+.text
+
 .extern IDTR
 
 .globl idt_flush
 idt_flush:
-  lidt (IDTR)
-  ret
+    /* Same idea: use RIP-relative addressing. */
+    lidt IDTR(%rip)
+    ret

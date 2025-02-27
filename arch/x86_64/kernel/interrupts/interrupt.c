@@ -1,7 +1,7 @@
 #include <descriptor_tables/isr.h>
 #include <interrupts/lapic.h>
-
-#include <stdio.h>
+#include <printf.h>
+#include <panic.h>
 
 static void (*interrupts_handlers[256])(int);
 
@@ -21,15 +21,15 @@ void isr_common(unsigned char num, int error_code)
 		Halt the system
 		*/
 
-		krnl_printf_reset_x();
-		krnl_printf_reset_y();
-		drawRect(0, 0, 1366, 768, 0xFF0000FF);
+		// krnl_printf_reset_x();
+		// krnl_printf_reset_y();
+		// drawRect(0, 0, 1366, 768, 0xFF0000FF);
 		
-		printf("\n\rAN EXCEPTION HAS OCCURED: %08%x\n", num);
-		printf("\rError Code: %08%x\n\r", error_code);
-		printf("Error Code: %08%x", error_code);
-		asm volatile("cli");
-		asm volatile("hlt");
+		kprintf("\n\rAN EXCEPTION HAS OCCURED: %08%x\n", num);
+		kprintf("\rError Code: %08%x\n\r", error_code);
+		kprintf("Error Code: %08%x", error_code);
+		__asm__ volatile("cli");
+		__asm__ volatile("hlt");
 	}
 	interrupts_handlers[num](error_code);	// Call interrupt handler
 	apic_send_eoi_if_necessary(num);		// Send EOI
