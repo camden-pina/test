@@ -57,6 +57,7 @@ extern uint8_t* bitmap_start;
 
 void pmm_init(void* memoryMap, uint64_t memoryMapSize, uint64_t memoryMapDescSize)
 {
+    kprintf("memory map size: %llu", memoryMapSize);
     total_memory = 0;
     total_memory_free = 0;
     total_memory_used = 0;
@@ -65,9 +66,11 @@ void pmm_init(void* memoryMap, uint64_t memoryMapSize, uint64_t memoryMapDescSiz
     void* largestFreeMemorySegment = NULL;
     uint64_t largestFreeMemorySegmentSize = 0;
 
-    uint64_t memoryMapEntries = (memoryMapSize / memoryMapDescSize);
+
+    uint64_t memoryMapEntries = memoryMapSize / sizeof(memory_map_entry_t); // (memoryMapSize / memoryMapDescSize);
 
     // drawRect(0, 0, 1366, 768, 0x00000000);
+    kprintf("raw");
 
     for (uint64_t i = 0; i < memoryMapEntries; i++)
     {

@@ -39,7 +39,7 @@ all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	@echo "==> Linking kernel..."
-	$(LD) $(LDFLAGS) -o $@ $(OBJS) -lk
+	$(LD) $(LDFLAGS) -o $@ $(OBJS)
 
 # Rule to compile C source files.
 %.o: %.c

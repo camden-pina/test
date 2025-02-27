@@ -190,8 +190,6 @@ typedef void (*KernelMainFunc)(
     flexboot_header_t* header
 );
 
-void kern_main(flexboot_header_t* header);
-
 #define __boot_data __attribute__((section(".boot_data")))
 
 #define KERNEL_MAX_SIZE  SIZE_2MB
@@ -299,5 +297,7 @@ extern uintptr_t __kernel_virtual_offset;
 extern uintptr_t __kernel_code_start;
 extern uintptr_t __kernel_code_end;
 extern uintptr_t __kernel_data_end;
+
+void kern_main(boot_info_v2_t* header);
 
 #endif

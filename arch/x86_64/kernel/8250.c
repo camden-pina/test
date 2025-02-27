@@ -33,3 +33,10 @@ int serial_port_write_char(uint16_t port, char ch) {
     outb(port, ch);
     return 0;
 }
+
+// Writes a null-terminated string to the serial port.
+void serial_port_write(const char *str) {
+    while (*str) {
+        serial_port_write_char(COM1_PORT, *str++);
+    }
+}

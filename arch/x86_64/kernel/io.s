@@ -37,6 +37,7 @@ indw:
     inl     %dx, %eax       # Input a double word from port dx into eax
     ret
 
+.globl read_msr
 read_msr:
     /* index is in %rdi; move it into %rcx for rdmsr */
     movq    %rdi, %rcx      # MSR index -> %rcx

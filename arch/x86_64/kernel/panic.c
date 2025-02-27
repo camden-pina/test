@@ -1,12 +1,10 @@
 #include <panic.h>
 #include <stdarg.h>
-#include <mutex.h>
 
-static mtx_t panic_lock;
 static bool panic_flags[4] = {};
 
 void panic_early_init() {
-    mtx_init(&panic_lock, MTX_SPIN|MTX_RECURSIVE, "panic_lock");
+    // mtx_init(&panic_lock, MTX_SPIN|MTX_RECURSIVE, "panic_lock");
 }
 
 noreturn void panic(const char *fmt, ...) {

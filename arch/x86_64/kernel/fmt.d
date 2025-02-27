@@ -1,1 +1,1 @@
-fmt.o: fmt.c
+fmt.o: fmt.c include/fmt.h

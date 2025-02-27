@@ -11,5 +11,6 @@
 
 int serial_port_init(uint16_t port);
 int serial_port_write_char(uint16_t port, char ch);
+void serial_port_write(const char *str);
 
 #endif

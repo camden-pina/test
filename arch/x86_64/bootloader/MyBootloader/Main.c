@@ -24,7 +24,7 @@
 
 typedef void (*KERNEL_ENTRY)(boot_info_v2_t*) __attribute__((sysv_abi));
 
-CHAR16 *DefaultKernelPath = L"/EFI/BOOT/kernel.elf";
+CHAR16 *DefaultKernelPath = L"/ModernOS/kernel.elf";
 UINT64 KernelPhysAddr = 0x0100000;
 UINT64 InitrdPhysAddrBase = 0x1000000;
 
