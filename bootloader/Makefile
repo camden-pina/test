@@ -73,10 +73,10 @@ copy_arch:
 	  echo "$(CYAN)[Error] Directory '$(ARCH)' not found in $(PROJECT_DIR).$(RESET)"; \
 	  exit 1; \
 	fi
-	@echo "$(CYAN)[Copy] Copying $(ARCH) to $(EDK2_DIR)/$(ARCH)...$(RESET)"
+	@echo "$(CYAN)[Copy] Copying $(ARCH) to $(EDK2_DIR)/Bootloader_$(ARCH)...$(RESET)"
 	@mkdir -p $(EDK2_DIR)
 	@rm -rf $(EDK2_DIR)/$(ARCH)
-	@cp -r $(ARCH) $(EDK2_DIR)/
+	@cp -r $(ARCH) $(EDK2_DIR)/Bootloader_$(ARCH)
 
 # --------------------------------------------
 # build - Build the bootloader using MyPlatform.dsc
@@ -90,7 +90,7 @@ build:
 	  echo "$(CYAN)[Build] Skipping build step as SKIP_BUILD is set.$(RESET)"; \
 	else \
 	  echo "$(CYAN)[Build] Building bootloader (ARCH=$(ARCH), BUILD_TYPE=$(BUILD_TYPE), TOOLCHAIN=$(TOOLCHAIN))...$(RESET)"; \
-	  cd $(EDK2_DIR) && bash -c '. ./edksetup.sh --reconfig; export GCC5_BIN=x86_64-elf-; build -p "$(ARCH)/MyPlatform.dsc" -a $(ARCH) -t $(TOOLCHAIN) -b $(BUILD_TYPE)'; \
+	  cd $(EDK2_DIR) && bash -c '. ./edksetup.sh --reconfig; export GCC5_BIN=x86_64-elf-; build -p "Bootloader_X64/MyPlatform.dsc" -a $(ARCH) -t $(TOOLCHAIN) -b $(BUILD_TYPE)'; \
 	fi
 	@echo "$(CYAN)[Build] Build step completed.$(RESET)"
 	@$(MAKE) install
@@ -136,5 +136,5 @@ clean:
 	@echo "$(CYAN)[Clean] Cleaning up build artifacts in $(BUILD_DIR)...$(RESET)"
 	@rm -rf $(BUILD_DIR)
 	@echo "$(CYAN)[Clean] Cleaning up EDK2 build artifacts in $(EDK2_DIR)...$(RESET)"
-	@cd $(EDK2_DIR) && . ./edksetup.sh && build -p "$(ARCH)/MyPlatform.dsc" -a $(ARCH) -t $(TOOLCHAIN) -b $(BUILD_TYPE) clean
+	@cd $(EDK2_DIR) && . ./edksetup.sh && build -p "Bootloader_$(ARCH)/MyPlatform.dsc" -a $(ARCH) -t $(TOOLCHAIN) -b $(BUILD_TYPE) clean
 

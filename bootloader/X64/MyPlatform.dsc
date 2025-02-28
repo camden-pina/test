@@ -79,7 +79,7 @@
     FileHandleLib|MdePkg/Library/UefiFileHandleLib/UefiFileHandleLib.inf
 
 [Components]
-  X64/Bootloader_X64.inf
+  Bootloader_X64/Bootloader_X64.inf
 
 [Packages]
   MdePkg/MdePkg.dec
