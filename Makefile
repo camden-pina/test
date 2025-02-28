@@ -5,6 +5,8 @@
 # Default architecture; override with "make ARCH=arm" if needed.
 ARCH ?= x86_64
 
+export PATH := $(CURDIR)/toolchain/opt/cross/bin:$(PATH)
+
 # Set up architecture-specific variables.
 ifeq ($(ARCH),x86_64)
   CROSS_COMPILE_BOOT   ?= x86_64-w64-mingw32-
@@ -39,19 +41,18 @@ all: $(TARGET_BOOT) $(TARGET_KERNEL) image
 ################################################################################
 $(TARGET_BOOT):
 	@echo "==> Building bootloader for $(ARCH)..."
-	$(MAKE) -C $(ARCH_DIR)/bootloader all CROSS_COMPILE="$(CROSS_COMPILE_BOOT)"
+	$(MAKE) -C bootloader all
 	@echo "==> Copying bootloader binary to top-level..."
-	cp $(ARCH_DIR)/bootloader/edk2/Build/MyPlatform/Output/RELEASE_GCC5/X64/Loader.efi BOOTX64.EFI
-	#cp $(ARCH_DIR)/bootloader/$(TARGET_BOOT) .
+	cp bootloader/build/BOOTX64.EFI BOOTX64.EFI
 
 ################################################################################
 # Build Kernel
 ################################################################################
 $(TARGET_KERNEL):
 	@echo "==> Building kernel for $(ARCH)..."
-	$(MAKE) -C $(ARCH_DIR)/kernel CROSS_COMPILE="$(CROSS_COMPILE_KERNEL)"
+	$(MAKE) -C kernel compile_kernel CROSS_COMPILE="$(CROSS_COMPILE_KERNEL)"
 	@echo "==> Copying kernel binary to top-level..."
-	cp $(ARCH_DIR)/kernel/$(TARGET_KERNEL) .
+	cp kernel/x86_64/$(TARGET_KERNEL) .
 
 ################################################################################
 # Create Disk Image with Bootloader Installed
@@ -128,8 +129,8 @@ umount-img:
 ################################################################################
 clean:
 	@echo "==> Cleaning up build artifacts..."
-	$(MAKE) -C $(ARCH_DIR)/bootloader clean
-	$(MAKE) -C $(ARCH_DIR)/kernel clean
+	$(MAKE) -C bootloader clean
+	$(MAKE) -C kernel clean
 	rm -f $(TARGET_BOOT) $(TARGET_KERNEL) $(DISK_IMG)
 	@rm -rf $(BUILD_DIR)
 	@echo "Cleanup complete."
