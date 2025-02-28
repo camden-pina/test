@@ -1,4 +1,4 @@
-ENTRY(kern_main)
+ENTRY(entry)
 
 SECTIONS {
   __kernel_address = 0x100000;

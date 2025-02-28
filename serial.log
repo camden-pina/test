@@ -1,7 +1,7 @@
 [2J[01;01H[=3h[2J[01;01H[0m[35m[40m[0m[37m[40mBdsDxe: failed to load Boot0001 "UEFI QEMU DVD-ROM QM00003 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Secondary,Master,0x0): Not Found
 BdsDxe: loading Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
 BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
-[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1,0x1)/Ata(0x0)/HD(1,GPT,9AA11058-AE02-47FD-8349-570149B2DB3B,0x800,0x187DF)
+[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1,0x1)/Ata(0x0)/HD(1,GPT,7D429EBC-6F82-4947-B52D-2BCCB9EF31D3,0x800,0x187DF)
 [Loader] INFO:     Listing directory:
   EFI
   ModernOS
@@ -10,15 +10,15 @@ BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x
 [Loader] WARN:     No config file found
 [Loader] INFO:     Loading kernel
 [Loader] INFO:       phys addr: 0x100000
-[Loader] INFO:       image size: 49000
-[Loader] INFO:       kernel entry: 0xFFFF800000103FAA
-[Loader] INFO:       memory size: 49152
+[Loader] INFO:       image size: 77808
+[Loader] INFO:       kernel entry: 0xFFFF800000105E32
+[Loader] INFO:       memory size: 69632
 [Loader] INFO:     Loading executable data segment
 [Loader] INFO:       base: 0xFFFF800000100000
-[Loader] INFO:       size: 0xB9DC (12 pages)
+[Loader] INFO:       size: 0x109DC (17 pages)
 [Loader] WARN:     No .load_sections section found
 [Loader] WARN:     No .boot_data section found
 [Loader] INFO:     Kernel loaded
 [Loader] INFO:     Done
 [Loader] INFO:     Exiting UEFI...
-testhellomemory map size: 696rawpmm_initpmm_pages_lock
+testhellomemory map size: 600rawpmm_initpmm_pages_lockvmem_init() #1vmem_init() #2vmem_init() #3vmem_init() #4

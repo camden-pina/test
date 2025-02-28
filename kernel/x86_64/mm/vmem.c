@@ -1,5 +1,7 @@
 #include <mm/vmem.h>
 #include <string.h>
+#include <8250.h>
+#include <printf.h>
 
 /*
  * struct page_sirectory_entry
@@ -115,11 +117,16 @@ extern uint64_t total_memory;
 
 void vmem_init(uint64_t fb_base, uint64_t fb_size)
 {
+        serial_port_write("vmem_init() #1");
         PML4 = (struct page_table*)bitmap_page_request();
+        serial_port_write("vmem_init() #2");
         memset(PML4, 0, PAGE_SIZE);
+        serial_port_write("vmem_init() #3");
         
         for (uint64_t idx = 0; idx < total_memory; idx += PAGE_SIZE)    // Identity map all pages
                 vmem_memory_map((void*)idx, (void*)idx);
+
+        serial_port_write("vmem_init() #4");
         
         uint64_t fbBase = fb_base;
         uint64_t fbSize = fb_size + 0x1000;

@@ -41,7 +41,7 @@ all: $(TARGET_BOOT) $(TARGET_KERNEL) image
 ################################################################################
 $(TARGET_BOOT):
 	@echo "==> Building bootloader for $(ARCH)..."
-	$(MAKE) -C bootloader all
+	$(MAKE) -C bootloader bootloader
 	@echo "==> Copying bootloader binary to top-level..."
 	cp bootloader/build/BOOTX64.EFI BOOTX64.EFI
 

@@ -4,8 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${default}",
-                "/home/camdenpina/Music/ModernOS/arch/x86_64/kernel/lib/libk/include",
-                "/home/camdenpina/Music/ModernOS/arch/x86_64/kernel/include"
+                "/home/camdenpina/Documents/test/kernel/x86_64/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
