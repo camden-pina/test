@@ -53,6 +53,6 @@ void kprintf(const char *format, ...) {
 
 void kvfprintf(const char *format, va_list valist) {
   char str[BUFFER_SIZE];
-//  fmt_format(format, str, BUFFER_SIZE, FMT_MAX_ARGS, valist);
-  kprintf_puts_impl(impl_arg, format);
+  fmt_format(format, str, BUFFER_SIZE, FMT_MAX_ARGS, valist);
+  kprintf_puts_impl(impl_arg, str);
 }

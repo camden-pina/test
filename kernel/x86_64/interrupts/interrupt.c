@@ -11,6 +11,38 @@ void register_interrupt_handler(unsigned int irq, void (*handler)(void)) {
 		interrupts_handlers[irq] = (void (*)(int))handler; // added (int *) 2/10/2025 7:59pm
 }
 
+char *exceptions[] = {
+	"Division Error",
+	"Debug",
+	"Non-Maskable Interrupt",
+	"Breakpoint",
+	"Overflow",
+	"Bound Range Exceeded",
+	"Invalid Opcode",
+	"Device Not Available",
+	"Double Fault",
+	"Coprocessor Segment Overrun",
+	"Invalid TSS",
+	"Segment Not Present",
+	"Stack-Segment Fault",
+	"General Protection Fault",
+	"Page Fault",
+	"Reserved1",
+	"x87 Floating-Point Exception",
+	"Alignment Check",
+	"Machine Check",
+	"SIMD Floating-Point Exception",
+	"Virtualiation Exception",
+	"Control Protection Exception",
+	"Reserved2",
+	"Hypervisor Injection Exception",
+	"VMM Communication Exception",
+	"Security Exception",
+	"Reserved3",
+	"Triple Fault",
+	"FPU Error Interrupt"
+};
+
 void isr_common(unsigned char num, int error_code)
 {
 	if (num <= 0x20)
@@ -25,9 +57,8 @@ void isr_common(unsigned char num, int error_code)
 		// krnl_printf_reset_y();
 		// drawRect(0, 0, 1366, 768, 0xFF0000FF);
 		
-		kprintf("\n\rAN EXCEPTION HAS OCCURED: %08%x\n", num);
-		kprintf("\rError Code: %08%x\n\r", error_code);
-		kprintf("Error Code: %08%x", error_code);
+		kprintf("\n\rAN EXCEPTION HAS OCCURED: %s\n", exceptions[num]);
+		kprintf("\rError Code: 0x%x\n\r", error_code);
 		__asm__ volatile("cli");
 		__asm__ volatile("hlt");
 	}

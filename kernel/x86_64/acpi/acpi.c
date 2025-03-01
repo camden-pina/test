@@ -107,7 +107,7 @@ _Bool acpi_init(unsigned long long* rsdp_ptr)
 	if (!acpi_checksum(&fadt->x_dsdt))
 		PANIC("ACPI Init: Invalid XDSDT");
 
-	//acpi_namespace_create((void*)fadt->x_dsdt);
+	acpi_namespace_create((void*)fadt->x_dsdt);
 
 	//void* dsst_amls = acpi_load_table(dsdt);
 	//dsdt_addr = (char*)(unsigned long long)fadt->x_dsdt + sizeof(acpi_sdt_hdr_t);

@@ -6,6 +6,7 @@
 #include <printf.h>
 #include <panic.h>
 #include <string.h>
+#include <printf.h>
 
 static void acpi_namespace_load_table(void* ptr);
 
@@ -16,10 +17,10 @@ static int acpi_populate(struct acpi_namespace_node_t *parent, void *data, size_
 static acpi_namespace_node_t* acpi_namespace_node_initialize(void)
 {
     acpi_namespace_node_t* node = kmalloc(sizeof(*node));
-    if (!node)
-        return (void*)0;
-    
+    kassert(node != NULL);
+
     memset(node, 0, sizeof(*node));
+    kprintf("Initialized new ACPI namespace node at %p\n", node);
     return node;
 }
 
@@ -37,29 +38,29 @@ static size_t acpi_namespace_capacity;
 
 static void acpi_namespace_node_install(acpi_namespace_node_t* node)
 {
+    kassert(node != NULL);
+
     if (lai_ns_size == acpi_namespace_capacity)
     {
         size_t new_capacity = acpi_namespace_capacity * 2;
+        new_capacity = new_capacity ? new_capacity : NAMESPACE_WINDOW;
 
-        if (!new_capacity)
-            new_capacity = NAMESPACE_WINDOW;
-        
-        acpi_namespace_node_t** new_array;
-        new_array = krealloc(acpi_namespace, sizeof(acpi_namespace_node_t*) * new_capacity);
+        acpi_namespace_node_t** new_array = krealloc(acpi_namespace, sizeof(acpi_namespace_node_t*) * new_capacity);
+        kassert(new_array != NULL);
 
-        if (!new_array)
-            PANIC("could not kreallocate namespace table");
-        
         acpi_namespace = new_array;
         acpi_namespace_capacity = new_capacity;
+        kprintf("Namespace capacity increased to %zu\n", new_capacity);
     }
+
     acpi_namespace[lai_ns_size++] = node;
+    kprintf("Installed namespace node at index %zu\n", lai_ns_size - 1);
 }
+
 void acpi_namespace_create(void* dsdt)
 {
-	for (int i = 0; i < 100; i++)
-		kprintf("%02%x ", *((char*)dsdt + i));
-    
+    kassert(dsdt != NULL);
+
     acpi_namespace_code = NULL;
     acpi_namespace_allocation = 0;
     lai_acpins_size = 0;
@@ -68,18 +69,19 @@ void acpi_namespace_create(void* dsdt)
     lai_ns_size = 0;
     acpi_namespace_capacity = NAMESPACE_WINDOW;
 
+    kprintf("Starting ACPI namespace creation with DSDT at %p\n", dsdt);
     acpi_namespace_load_table(dsdt);
 
     size_t index = 0;
     acpi_aml_t* ssdt = acpi_scan("SSDT", index);
-
     while (ssdt != NULL)
     {
+        kprintf("Loading SSDT at index %llu\n", index);
         acpi_namespace_load_table(ssdt);
-        index++;
-        ssdt = acpi_scan("SSDT", index);
+        ssdt = acpi_scan("SSDT", ++index);
     }
 
+    // Initialize standard methods
     struct acpi_namespace_node_t* OSI = acpi_namespace_node_initialize();
     strcpy(OSI->path, "\\._OSI");
     OSI->type = ACPI_NAMESPACE_METHOD;
@@ -106,29 +108,7 @@ void acpi_namespace_create(void* dsdt)
     acpi_populate(NULL, acpi_namespace_code, lai_acpins_size, &state);
     acpi_finalize_state(&state);
 
-    PANIC("INITIALIZED ACPI");
-    /*
-
-
-
-
-
-
-
-
-    struct acpi_namespace_node_t* acpi_namespace_root = acpi_namespace_create_root();
-
-    struct acpi_state_t state;
-
-    // Load the DSDT
-    void* dsdt_table = acpi_scan("DSDT", 0);
-    if (!dsdt_table)
-        PANIC("[ERROR] UNABLE TO FIND ACPI DSDT");
-    
-    void* dsdt_amls = acpi_load_table(dsdt_table, 0);
-    acpi_init_state(&state);
-    acpi_populate(acpi_namespace_root, dsdt_amls, size, &state);
-    acpi_finalize_state(&state);*/
+    kprintf("ACPI namespace created successfully\n");
 }
 
 // Windozz
@@ -136,7 +116,7 @@ static void acpi_namespace_load_table(void* ptr)
 {
     acpi_aml_t* table = (acpi_aml_t*)ptr;   // cast ptr to aml table
     
-    kprintf("Loaded AML table '%c%c%c%c', total %l bytes of AML code\n\r", *((char*)ptr + 0), *((char*)ptr + 1), *((char*)ptr + 2), *((char*)ptr + 3));
+    kprintf("Loaded AML table '%c%c%c%c', total %llu bytes of AML code\n\r", *((char*)ptr + 0), *((char*)ptr + 1), *((char*)ptr + 2), *((char*)ptr + 3));
     
     while ((lai_acpins_size + table->hdr.len) >= acpi_namespace_allocation)
     {

@@ -6,6 +6,11 @@
 #include <stdbool.h>
 #include <printf.h>
 
+// Contains definitions for the data structures given
+// to the kernel by the bootloader. The data structures
+// include information about system memory, devices.
+#define __boot_data __attribute__((section(".boot_data")))
+
 //#include "Sys32/system.h"
 // Register structs for interrupt/exception
 typedef struct _register_t
@@ -297,6 +302,8 @@ extern uintptr_t __kernel_virtual_offset;
 extern uintptr_t __kernel_code_start;
 extern uintptr_t __kernel_code_end;
 extern uintptr_t __kernel_data_end;
+
+extern boot_info_v2_t *boot_info_v2;
 
 void kern_main(boot_info_v2_t* header);
 

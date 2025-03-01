@@ -20,6 +20,7 @@
         "optional": "cpp",
         "variant": "cpp",
         "mutex": "cpp",
-        "shared_mutex": "cpp"
+        "shared_mutex": "cpp",
+        "string.h": "c"
     }
 }

@@ -35,7 +35,7 @@ static void keyboard_isr(void)
 
 		unsigned char pressed_char = SCAN_CODE_MAPPING[scancode];
 
-		// putc(pressed_char);
+		kprintf("%c", pressed_char);
 	}
 }
 
@@ -60,6 +60,8 @@ static inline uint8_t serial_inb(uint16_t port) {
     return ret;
 }
 
+boot_info_v2_t __boot_data *boot_info_v2;
+
 void kern_main(boot_info_v2_t* boot_hdr)
 {
 	serial_port_init(COM1_PORT);
@@ -72,7 +74,7 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	kprintf("test");
 	serial_port_write("hello");
 
-	pmm_init(boot_hdr->mem_map.map, boot_hdr->mem_map.size, sizeof(memory_map_entry_t));
+	pmm_init(boot_info_v2->mem_map.map, boot_info_v2->mem_map.size, sizeof(memory_map_entry_t));
 
 	uint64_t kernel_size = (uint64_t)&kernel_end - (uint64_t)&kernel_start;
 	uint64_t kernel_pages = (uint64_t)(kernel_size / 0x1000) + 1;
@@ -83,17 +85,11 @@ void kern_main(boot_info_v2_t* boot_hdr)
 
 	serial_port_write("pmm_pages_lock");
 
-	vmem_init((uint64_t)boot_hdr->fb_addr, boot_hdr->fb_size);
-
 	serial_port_write("vmem_init");
-	
-	kprintf("\n\rtotal_memory: %l", pmm_get_total_memory());
-	kprintf("\n\rtotal_memory_used: %l", pmm_get_total_memory_used());
-	kprintf("\n\rtotal_memory_free: %l", pmm_get_total_memory_free());
-	kprintf("\n\rtotal_memory_reserved: %l", pmm_get_total_memory_reserved());
-	
+
 	__asm__ volatile("cli");
-	acpi_init((long long unsigned int *)boot_hdr->acpi_ptr);
+	acpi_init((long long unsigned int *)boot_info_v2->acpi_ptr);
+	
 	gdt_init();
 	apic_init();
 	idt_init();
@@ -107,8 +103,10 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	
 	kprintf("ModernOS (C)\n\n\r");
 	kprintf("Copyright (C) Ideal Technologies Inc.\n\r");
-	
-	kprintf("\n\rfree_memory: %08%x\n\r", pmm_get_total_memory_free());
+
+	char *str = kmalloc(1);
+	str = "cat\0";
+	kprintf("%s", str);
 	
 	while (1)
 	{

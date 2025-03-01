@@ -1,5 +1,7 @@
 #include <panic.h>
 #include <stdarg.h>
+#include <printf.h>
+#include <8250.h>
 
 static bool panic_flags[4] = {};
 
@@ -8,6 +10,16 @@ void panic_early_init() {
 }
 
 noreturn void panic(const char *fmt, ...) {
+    kprintf(">>>> nested panic <<<<\n");
+
+    va_list valist;
+    va_start(valist, fmt);
+    kvfprintf(fmt, valist);
+    va_end(valist);
+
+    while (1) {
+
+    }
 }
 
 /*

@@ -1,7 +1,7 @@
 [2J[01;01H[=3h[2J[01;01H[0m[35m[40m[0m[37m[40mBdsDxe: failed to load Boot0001 "UEFI QEMU DVD-ROM QM00003 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Secondary,Master,0x0): Not Found
 BdsDxe: loading Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
 BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
-[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1,0x1)/Ata(0x0)/HD(1,GPT,7D429EBC-6F82-4947-B52D-2BCCB9EF31D3,0x800,0x187DF)
+[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1,0x1)/Ata(0x0)/HD(1,GPT,D896E1CA-E28A-44C9-A7B6-FC47BA800B48,0x800,0x187DF)
 [Loader] INFO:     Listing directory:
   EFI
   ModernOS
@@ -10,15 +10,102 @@ BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x
 [Loader] WARN:     No config file found
 [Loader] INFO:     Loading kernel
 [Loader] INFO:       phys addr: 0x100000
-[Loader] INFO:       image size: 77808
-[Loader] INFO:       kernel entry: 0xFFFF800000105E32
-[Loader] INFO:       memory size: 69632
+[Loader] INFO:       image size: 90832
+[Loader] INFO:       kernel entry: 0xFFFF800000107905
+[Loader] INFO:       memory size: 86016
 [Loader] INFO:     Loading executable data segment
 [Loader] INFO:       base: 0xFFFF800000100000
-[Loader] INFO:       size: 0x109DC (17 pages)
+[Loader] INFO:       size: 0x14A94 (21 pages)
 [Loader] WARN:     No .load_sections section found
-[Loader] WARN:     No .boot_data section found
+[Loader] INFO:     Found .boot_data section
+[Loader] INFO:     Looking for boot info symbol
+[Loader] INFO:     Found boot info symbol 'boot_info_v2'
 [Loader] INFO:     Kernel loaded
 [Loader] INFO:     Done
 [Loader] INFO:     Exiting UEFI...
-testhellomemory map size: 600rawpmm_initpmm_pages_lockvmem_init() #1vmem_init() #2vmem_init() #3vmem_init() #4
+testhelloInitializing PMM with memory map size: 600 bytes
+Total memory map entries: 25
+Entry 0: Start=0, Type=3
+  [0x0-0x1000] reserved (4096)
+Entry 1: Start=0x1000, Type=2
+  [0x1000-0xa0000] usable (651264)
+Entry 2: Start=0x100000, Type=2
+  [0x100000-0x800000] usable (7340032)
+Entry 3: Start=0x800000, Type=5
+  [0x800000-0x808000] ACPI NVS (32768)
+Entry 4: Start=0x808000, Type=2
+  [0x808000-0x810000] usable (32768)
+Entry 5: Start=0x810000, Type=5
+  [0x810000-0x900000] ACPI NVS (983040)
+Entry 6: Start=0x900000, Type=3
+  [0x900000-0x1500000] reserved (12582912)
+Entry 7: Start=0x1500000, Type=2
+  [0x1500000-0x7bf36000] usable (2057527296)
+Entry 8: Start=0x7bf36000, Type=3
+  [0x7bf36000-0x7bf56000] reserved (131072)
+Entry 9: Start=0x7bf56000, Type=2
+  [0x7bf56000-0x7c3dc000] usable (4743168)
+Entry 10: Start=0x7c3dc000, Type=8
+  [0x7c3dc000-0x7e3dc000] EFI runtime data (33554432)
+Entry 11: Start=0x7e3dc000, Type=2
+  [0x7e3dc000-0x7e3ec000] usable (65536)
+Entry 12: Start=0x7e3ec000, Type=3
+  [0x7e3ec000-0x7f034000] reserved (12877824)
+Entry 13: Start=0x7f034000, Type=8
+  [0x7f034000-0x7f0be000] EFI runtime data (565248)
+Entry 14: Start=0x7f0be000, Type=3
+  [0x7f0be000-0x7f8ef000] reserved (8589312)
+Entry 15: Start=0x7f8ef000, Type=8
+  [0x7f8ef000-0x7f9ef000] EFI runtime data (1048576)
+Entry 16: Start=0x7f9ef000, Type=7
+  [0x7f9ef000-0x7faef000] EFI runtime code (1048576)
+Entry 17: Start=0x7faef000, Type=3
+  [0x7faef000-0x7fb6f000] reserved (524288)
+Entry 18: Start=0x7fb6f000, Type=4
+  [0x7fb6f000-0x7fb7f000] ACPI data (65536)
+Entry 19: Start=0x7fb7f000, Type=5
+  [0x7fb7f000-0x7fbff000] ACPI NVS (524288)
+Entry 20: Start=0x7fbff000, Type=3
+  [0x7fbff000-0x7fe00000] reserved (2101248)
+Entry 21: Start=0x7fe00000, Type=2
+  [0x7fe00000-0x7fe9e000] usable (647168)
+Entry 22: Start=0x7fe9e000, Type=3
+  [0x7fe9e000-0x7fef4000] reserved (352256)
+Entry 23: Start=0x7fef4000, Type=8
+  [0x7fef4000-0x7ff78000] EFI runtime data (540672)
+Entry 24: Start=0x7ff78000, Type=5
+  [0x7ff78000-0x80000000] ACPI NVS (557056)
+total memory: 2047 GB
+usable memory: 1975 GB
+kernel_reserved_start: 0x1500000
+kernel_reserved_end: 0x7bf36000
+initialized kernel heap
+pmm_initpmm_pages_lockvmem_initInitializing ACPI...
+Verfiying XSDT
+Setting FADT
+Verifying FADT
+Verifying X_DSDT
+Starting ACPI namespace creation with DSDT at 0x7fb7b000
+Loaded AML table 'DSDT', total 18446603336222273260 bytes of AML code
+Total Tables: 5Searching for ACPI table with signature SSDT at index 0
+ACPI table SSDT not found at index 0
+Failed to find ACPI table SSDT at index 0
+Initialized new ACPI namespace node at 0xffffff8000420030
+!!!! X64 Exception Type - 0E(#PF - Page-Fault)  CPU Apic ID - 00000000 !!!!
+ExceptionData - 0000000000000002  I:0 R:0 U:0 W:1 P:0 PK:0 SS:0 SGX:0
+RIP  - FFFF800000100A09, CS  - 0000000000000038, RFLAGS - 0000000000010046
+RAX  - FFFFFF8000420030, RCX - 0000000000000000, RDX - 0000000000000000
+RBX  - FFFF800000100568, RSP - FFFF80000010FB20, RBP - FFFF80000010FB40
+RSI  - FFFF800000113058, RDI - FFFFFF8000420030
+R8   - FFFF80000010F798, R9  - 0000000000000010, R10 - 000000007FAE8820
+R11  - 00000000205049D6, R12 - 000000007FB4C000, R13 - 000000007E3E4B64
+R14  - 000000007C3DC000, R15 - 0000000000000000
+DS   - 0000000000000030, ES  - 0000000000000030, FS  - 0000000000000030
+GS   - 0000000000000030, SS  - 0000000000000030
+CR0  - 0000000080010033, CR2 - 0000000000000000, CR3 - 000000007FB4C000
+CR4  - 0000000000000668, CR8 - 0000000000000000
+DR0  - 0000000000000000, DR1 - 0000000000000000, DR2 - 0000000000000000
+DR3  - 0000000000000000, DR6 - 00000000FFFF0FF0, DR7 - 0000000000000400
+GDTR - 000000007F9EEA98 0000000000000047, LDTR - 0000000000000000
+IDTR - 000000007F58A018 0000000000000FFF,   TR - 0000000000000000
+FXSAVE_STATE - FFFF80000010F780
