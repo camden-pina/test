@@ -66,26 +66,9 @@ void kern_main(boot_info_v2_t* boot_hdr)
 {
 	serial_port_init(COM1_PORT);
 
-	// krnl_set_graphics_ouutput_protocol(boot_hdr->fb->base_addr, boot_hdr->fb->px_width, boot_hdr->fb->px_height, boot_hdr->fb->bpp, boot_hdr->fb->pps);
-    // drawRect(0, 0, 100, 200, 0xAAAAFFFF);
-	
 	kprintf_early_init();
 
-	kprintf("test");
-	serial_port_write("hello");
-
 	pmm_init(boot_info_v2->mem_map.map, boot_info_v2->mem_map.size, sizeof(memory_map_entry_t));
-
-	uint64_t kernel_size = (uint64_t)&kernel_end - (uint64_t)&kernel_start;
-	uint64_t kernel_pages = (uint64_t)(kernel_size / 0x1000) + 1;
-	
-	serial_port_write("pmm_init");
-
-	pmm_pages_lock(&kernel_start, kernel_pages);
-
-	serial_port_write("pmm_pages_lock");
-
-	serial_port_write("vmem_init");
 
 	__asm__ volatile("cli");
 	acpi_init((long long unsigned int *)boot_info_v2->acpi_ptr);

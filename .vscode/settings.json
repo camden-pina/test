@@ -21,6 +21,9 @@
         "variant": "cpp",
         "mutex": "cpp",
         "shared_mutex": "cpp",
-        "string.h": "c"
+        "string.h": "c",
+        "core.h": "c",
+        "tables.h": "c",
+        "acpi.h": "c"
     }
 }
