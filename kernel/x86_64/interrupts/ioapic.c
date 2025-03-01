@@ -60,7 +60,7 @@ void ioapic_map_irq(uint8_t irq, uint8_t vector) {
         kprintf("ioapic_map_irq: I/O APIC not initialized\n");
         return;
     }
-    kprintf("IOAPIC: Mapping IRQ %hhu -> IDT vector %hhu\n", irq, vector);
+    kprintf("IOAPIC: Mapping IRQ %llu -> IDT vector %llu\n", irq, vector);
     uint32_t index = IOREDTBL + irq * 2;
     uint32_t hi_index = index + 1;
     

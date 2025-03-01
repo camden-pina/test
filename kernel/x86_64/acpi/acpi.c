@@ -122,6 +122,7 @@ _Bool acpi_init(uint64_t rsdp_addr) {
     void *dsdt_ptr = (fadt->x_dsdt) 
                      ? (void*)(uintptr_t) fadt->x_dsdt 
                      : (void*)(uintptr_t) fadt->dsdt;
+
     if (!dsdt_ptr || !acpi_checksum(dsdt_ptr)) {
         PANIC("ACPI: DSDT not found or checksum invalid");
     }
@@ -185,7 +186,7 @@ void *laihost_malloc(size_t size)        { return kmalloc(size); }   // use kern
 void *laihost_realloc(void *ptr, size_t newsize, size_t oldsize) { return krealloc(ptr, newsize); }
 void  laihost_free(void *ptr, size_t size) { kfree(ptr); }
 
-void  laihost_log(int level, const char *msg)    { kprintf("[ACPI%i] %s", level, msg); }
+void  laihost_log(int level, const char *msg)    { kprintf("[ACPI%llu] %s", level, msg); }
 void  laihost_panic(const char *msg)             { panic("ACPI: %s", msg); }
 
 void *laihost_scan(char *signature, size_t index) {

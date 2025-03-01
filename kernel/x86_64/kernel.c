@@ -77,8 +77,9 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	lapic_init();
 	idt_init();
 
+	ioapic_init();
 	ps2_keyboard_init();
-	ps2_mouse_init();
+	// ps2_mouse_init();
 	__asm__ volatile("sti");
 	// drawRect(0, 0, boot_hdr->fb->px_width, boot_hdr->fb->px_height, 0x00000000);
 	// krnl_printf_reset_x();

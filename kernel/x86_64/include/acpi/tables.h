@@ -45,51 +45,74 @@ typedef struct _acpi_xsdt_t {
     uint64_t tables[];          // Array of 64-bit physical addresses to other tables
 } _acpi_xsdt_t;
 
+// Generic Address Structure (GAS)
+typedef struct _acpi_gas_t {
+    unsigned char addr_space;
+    unsigned char bit_width;
+    unsigned char bit_offset;
+    unsigned char access_size;
+    unsigned long long addr;
+} __attribute__((packed)) _acpi_gas_t;
+
 // Fixed ACPI Description Table (FADT/FACP)
 // Minimal version: only fields required for ACPI enable/disable and PM registers are defined.
-typedef struct _acpi_fadt_t {
-    _acpi_sdt_hdr_t hdr;        // Common ACPI table header
-    uint32_t facs;              // 32-bit physical address of the Firmware ACPI Control Structure (FACS)
-    uint32_t dsdt;              // 32-bit physical address of the Differentiated System Description Table (DSDT)
-    uint8_t  reserved;          // Reserved field (must be 0)
-    uint8_t  preferred_pm_profile;
-    uint16_t sci_int;
-    uint32_t smi_cmd;
-    uint32_t acpi_enable;
-    uint32_t acpi_disable;
-    uint32_t s4bios_req;
-    uint32_t pstate_cnt;
-    uint32_t pm1a_cnt_blk;
-    uint32_t pm1b_cnt_blk;
-    uint32_t pm1a_evt_blk;
-    uint32_t pm1b_evt_blk;
-    uint32_t pm2_cnt_blk;
-    uint32_t pm_tmr_blk;
-    uint32_t gpe0_blk;
-    uint32_t gpe1_blk;
-    uint8_t  pm1_cnt_len;
-    uint8_t  pm1_evt_len;
-    uint8_t  pm2_cnt_len;
-    uint8_t  pm_tmr_len;
-    uint8_t  gpe0_blk_len;
-    uint8_t  gpe1_blk_len;
-    uint8_t  gpe1_base;
-    uint8_t  cst_cnt;
-    uint16_t p_lvl2_lat;
-    uint16_t p_lvl3_lat;
-    uint16_t flush_size;
-    uint16_t flush_stride;
-    uint8_t  duty_offset;
-    uint8_t  duty_width;
-    uint8_t  day_alrm;
-    uint8_t  mon_alrm;
-    uint8_t  century;
-    uint16_t iapc_boot_arch;
-    uint8_t  reserved2;
-    uint32_t flags;
-    uint64_t x_facs;            // 64-bit address of FACS (ACPI 2.0+)
-    uint64_t x_dsdt;            // 64-bit address of DSDT (ACPI 2.0+)
-    // Additional fields are defined in the full specification but are not needed here.
+typedef struct __attribute__((packed)) _acpi_fadt_t {
+    _acpi_sdt_hdr_t hdr;
+    unsigned int firmware_ctl;
+    unsigned int dsdt;
+    unsigned char reserved0;
+    unsigned char pref_pm_profile;
+    unsigned short sci_int;
+    unsigned int smi_cmd;
+    unsigned char acpi_enable;
+    unsigned char acpi_disable;
+    unsigned char s4bios_req;
+    unsigned char pstate_cnt;
+    unsigned int pm1a_evt_block;
+    unsigned int pm1b_evt_blk;
+    unsigned int pm1a_cnt_blk;
+    unsigned int pm1b_cnt_blk;
+    unsigned int pm2_cnt_blk;
+    unsigned int pm_tmr_blk;
+    unsigned int gpe0_blk;
+    unsigned int gpe1_blk;
+    unsigned char pm1_evt_len;
+    unsigned char pm1_cnt_len;
+    unsigned char pm2_cnt_len;
+    unsigned char pm_tme_len;
+    unsigned char gpe0_blk_len;
+    unsigned char gpe1_blk_len;
+    unsigned char gpe1_base;
+    unsigned char cst_cnt;
+    unsigned short p_lvl2_lat;
+    unsigned short p_lvl3_lat;
+    unsigned short flush_size;
+    unsigned short flush_stride;
+    unsigned char duty_offset;
+    unsigned char duty_width;
+    unsigned char day_alrm;
+    unsigned char mon_alrm;
+    unsigned char century;
+    unsigned short iapc_boot_arch;
+    unsigned char reserved1;
+    unsigned int flags;
+    _acpi_gas_t reset_reg;
+    unsigned char reset_value;
+    unsigned short arm_boot_arch;
+    unsigned char fadt_minor_version;
+    unsigned long long x_firmware_ctrl;
+    unsigned long long x_dsdt;
+    _acpi_gas_t x_pm1a_evt_blk;
+    _acpi_gas_t x_pm1b_evt_blk;
+    _acpi_gas_t x_pm1a_cnt_blk;
+    _acpi_gas_t x_pm1b_cnt_blk;
+    _acpi_gas_t x_pm2_cnt_blk;
+    _acpi_gas_t x_pm_tmr_blk;
+    _acpi_gas_t x_gpe0_blk;
+    _acpi_gas_t x_gpe1_blk;
+    _acpi_gas_t sleep_control_reg;
+    _acpi_gas_t sleep_status_reg;
+    unsigned long long hypervisor_vendor_identity;
 } _acpi_fadt_t;
 
 // Multiple APIC Description Table (MADT) structure (contains APIC-related entries)

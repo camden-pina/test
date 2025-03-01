@@ -24,6 +24,7 @@
         "string.h": "c",
         "core.h": "c",
         "tables.h": "c",
-        "acpi.h": "c"
+        "acpi.h": "c",
+        "*.tcc": "c"
     }
 }
