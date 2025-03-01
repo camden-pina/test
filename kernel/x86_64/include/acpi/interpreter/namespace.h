@@ -22,13 +22,13 @@
 #define ACPI_NAMESPACE_BANK_FIELD       14
 #define ACPI_NAMESPACE_OPREGION         15
 
-typedef struct acpi_aml_t
+typedef struct _acpi_aml_t
 {
-	acpi_sdt_hdr_t hdr;
+	_acpi_sdt_hdr_t hdr;
 	uint8_t data[];
-} __attribute__((packed)) acpi_aml_t;
+} __attribute__((packed)) _acpi_aml_t;
 
-typedef struct acpi_namespace_node_t
+typedef struct _acpi_namespace_node_t
 {
 	char path[64];
 
@@ -37,12 +37,12 @@ typedef struct acpi_namespace_node_t
 	uint64_t op_length;
 
 	int type;
-	struct acpi_namespace_node_t* parent;
-	struct acpi_aml_segment_t* aml;
+	struct _acpi_namespace_node_t* parent;
+	struct _acpi_aml_segment_t* aml;
 
         uint8_t method_flags;
-        int (*method_override)(struct acpi_namespace_variable_t* args, struct acpi_namespace_variable_t* result);
-} acpi_namespace_node_t;
+        int (*method_override)(struct _acpi_namespace_variable_t* args, struct _acpi_namespace_variable_t* result);
+} _acpi_namespace_node_t;
 
 void acpi_namespace_create(void* dsdt);
 

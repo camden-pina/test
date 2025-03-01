@@ -15,7 +15,7 @@
   if (!(expression)) \
     panic("assertion failed: " msg ", file %s, line %d", ##__VA_ARGS__ __VA_OPT__(,) __FILE__, __LINE__);
 
-#define unreachable panic("unreachable: file %s, line %d", __FILE__, __LINE__)
+// #define unreachable panic("unreachable: file %s, line %d", __FILE__, __LINE__)
 
 void panic_early_init();
 noreturn void panic(const char *fmt, ...);

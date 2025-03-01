@@ -111,24 +111,24 @@
 #define METHOD_ARGC_MASK		0x07
 #define METHOD_SERIALIZED		0x08
 
-typedef struct acpi_namespace_variable_t
+typedef struct _acpi_namespace_variable_t
 {
         int type;
         uint64_t integer;
         char* string;
 
         int package_size;
-        struct acpi_namespace_variable_t* package;
+        struct _acpi_namespace_variable_t* package;
 
         size_t buffer_size;
         void* buffer;
         char name[64];
-        struct acpi_namespace_node_t* handle;
+        struct _acpi_namespace_node_t* handle;
 
         int index;
-} lai_ns_variable_t;
+} _lai_ns_variable_t;
 
-typedef struct acpi_stackitem_t
+typedef struct _acpi_stackitem_t
 {
         int kind;
         int opstack_frame;
@@ -137,7 +137,7 @@ typedef struct acpi_stackitem_t
         {
                 struct
                 {
-                        struct acpi_namespace_node_t* ctx_handle;
+                        struct _acpi_namespace_node_t* ctx_handle;
                         int ctx_limit;
                 };
 
@@ -167,45 +167,41 @@ typedef struct acpi_stackitem_t
                         uint8_t op_result_mode;
                 };
         };
-} lai_stackitem_t;
+} _lai_stackitem_t;
 
-struct acpi_object_t
+struct _acpi_object_t
 {
         int type;
         uint64_t integer;
         char* string;
 
         int package_size;
-        struct acpi_object_t* package;
+        struct _acpi_object_t* package;
 
         size_t buffer_size;
         void* buffer;
 
         char name[64];
-        struct acpi_namespace_node_t* handle;
+        struct _acpi_namespace_node_t* handle;
 
         int index;
 };
 
-typedef struct acpi_state_t
+typedef struct _acpi_state_t
 {
         int pc;
         int limit;
 
-        struct acpi_object_t retvalue;
-        struct acpi_object_t arg[7];
-        struct acpi_object_t local[8];
+        struct _acpi_object_t retvalue;
+        struct _acpi_object_t arg[7];
+        struct _acpi_object_t local[8];
 
         // Stack to track current execution state
         int stack_ptr;
         int opstack_ptr;
-        struct acpi_stackitem_t stack[16];
-        struct acpi_object_t opstack[16];
+        struct _acpi_stackitem_t stack[16];
+        struct _acpi_object_t opstack[16];
         int context_ptr;
-} lai_state_t;
-
-int acpi_namespace_method_osi(struct acpi_namespace_variable_t* args, struct acpi_namespace_variable_t* result);
-int acpi_namespace_method_os(struct acpi_namespace_variable_t* args, struct acpi_namespace_variable_t* result);
-int acpi_namespace_method_rev(struct acpi_namespace_variable_t* args, struct acpi_namespace_variable_t* result);
+} _lai_state_t;
 
 #endif
