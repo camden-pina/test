@@ -43,7 +43,7 @@ static void ps2_keyboard_init(void)
 {
 	kprintf("Initializing Keyboard\n\r");
 	register_interrupt_handler(33, keyboard_isr);
-	ioapic_map(1, 33);
+	ioapic_map_irq(1, 33);
 }
 
 extern uint64_t kernel_start;
@@ -71,10 +71,10 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	pmm_init(boot_info_v2->mem_map.map, boot_info_v2->mem_map.size, sizeof(memory_map_entry_t));
 
 	__asm__ volatile("cli");
-	acpi_init((long long unsigned int *)boot_info_v2->acpi_ptr);
+	acpi_init(boot_info_v2->acpi_ptr);
 	
 	gdt_init();
-	apic_init();
+	lapic_init();
 	idt_init();
 
 	ps2_keyboard_init();

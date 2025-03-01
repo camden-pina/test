@@ -4,6 +4,7 @@
 #include <panic.h>
 #include <string.h>
 
+/*
 // Access the global XSDT and FADT pointers defined in acpi.c.
 extern struct _acpi_xsdt_t* xsdt;
 extern struct _acpi_fadt_t* fadt;
@@ -70,3 +71,4 @@ void* acpi_scan(const char* name, size_t idx) {
         return NULL;
     }
 }
+*/

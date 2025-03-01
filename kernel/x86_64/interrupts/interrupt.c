@@ -1,67 +1,100 @@
-#include <descriptor_tables/isr.h>
-#include <interrupts/lapic.h>
+// Interrupt handlers and common ISR logic (interrupt.c)
 #include <printf.h>
 #include <panic.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <interrupts/lapic.h>
 
-static void (*interrupts_handlers[256])(int);
+// Array of function pointers for custom IRQ handlers (indexed by vector number)
+static void (*interrupts_handlers[256])(int error_code);
 
-// Register a defined function with as a handler for a certain interrupt or exception number
-void register_interrupt_handler(unsigned int irq, void (*handler)(void)) {
-	if (irq <= 256)
-		interrupts_handlers[irq] = (void (*)(int))handler; // added (int *) 2/10/2025 7:59pm
+// Default stub handler: used for unhandled IRQs 
+static void default_interrupt_handler(int irq_num) {
+    kprintf("Unhandled interrupt: vector %d (no handler registered)\n", irq_num);
+    // Just acknowledge and return; system continues running
 }
 
-char *exceptions[] = {
-	"Division Error",
-	"Debug",
-	"Non-Maskable Interrupt",
-	"Breakpoint",
-	"Overflow",
-	"Bound Range Exceeded",
-	"Invalid Opcode",
-	"Device Not Available",
-	"Double Fault",
-	"Coprocessor Segment Overrun",
-	"Invalid TSS",
-	"Segment Not Present",
-	"Stack-Segment Fault",
-	"General Protection Fault",
-	"Page Fault",
-	"Reserved1",
-	"x87 Floating-Point Exception",
-	"Alignment Check",
-	"Machine Check",
-	"SIMD Floating-Point Exception",
-	"Virtualiation Exception",
-	"Control Protection Exception",
-	"Reserved2",
-	"Hypervisor Injection Exception",
-	"VMM Communication Exception",
-	"Security Exception",
-	"Reserved3",
-	"Triple Fault",
-	"FPU Error Interrupt"
+// Exception messages table (0-31)
+static const char *exception_names[32] = {
+    "#DE Divide Error",
+    "#DB Debug",
+    "Non-Maskable Interrupt",
+    "#BP Breakpoint",
+    "Overflow",
+    "Bound Range Exceeded",
+    "Invalid Opcode",
+    "Device Not Available (No Math Coprocessor)",
+    "Double Fault",
+    "Coprocessor Segment Overrun (reserved)",
+    "Invalid TSS",
+    "Segment Not Present",
+    "Stack-Segment Fault",
+    "General Protection Fault",
+    "Page Fault",
+    "Reserved",
+    "x87 Floating-Point Exception",
+    "Alignment Check",
+    "Machine Check",
+    "SIMD Floating-Point Exception",
+    "Virtualization Exception",
+    "Control Protection Exception",
+    "Reserved",
+    "Hypervisor Injection Exception",
+    "VMM Communication Exception",
+    "Security Exception",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved"
 };
 
-void isr_common(unsigned char num, int error_code)
-{
-	if (num <= 0x20)
-	{
-		/* AN EXCEPTION HAS OCCURED
-		Clear the screen
-		Print error code (if available)
-		Halt the system
-		*/
+void interrupts_init_handlers(void) {
+    // Initialize all entries with default handler
+    for (int i = 0; i < 256; ++i) {
+        interrupts_handlers[i] = default_interrupt_handler;
+    }
+}
 
-		// krnl_printf_reset_x();
-		// krnl_printf_reset_y();
-		// drawRect(0, 0, 1366, 768, 0xFF0000FF);
-		
-		kprintf("\n\rAN EXCEPTION HAS OCCURED: %s\n", exceptions[num]);
-		kprintf("\rError Code: 0x%x\n\r", error_code);
-		__asm__ volatile("cli");
-		__asm__ volatile("hlt");
-	}
-	interrupts_handlers[num](error_code);	// Call interrupt handler
-	apic_send_eoi_if_necessary(num);		// Send EOI
+// Register a handler for a given IRQ/interrupt vector.
+void register_interrupt_handler(uint8_t vector, void (*handler)(int)) {
+    if (vector < 256 && handler != NULL) {
+        interrupts_handlers[vector] = handler;
+    } else {
+        kprintf("register_interrupt_handler: invalid vector %u or handler\n", vector);
+    }
+}
+
+// Common ISR handler called from assembly stubs.
+// Parameters: interrupt number and error code (error_code is meaningful for some exceptions; for hardware IRQs it may be 0).
+void isr_common(uint8_t vector, int error_code) {
+    // Identify whether this is an exception or an external interrupt
+    if (vector < 32) {
+        // CPU exception
+        const char *excName = exception_names[vector];
+        kprintf("\n[EXCEPTION] CPU Exception %u: %s\n", vector, excName ? excName : "Unknown");
+        if (vector == 14) {
+            // Example: for Page Fault (vector 14), print CR2 or related info if accessible
+            uintptr_t fault_addr;
+            __asm__ volatile("mov %%cr2, %0" : "=r"(fault_addr));
+            kprintf("CR2 (Faulting address) = 0x%p\n", (void*)fault_addr);
+        }
+        if (error_code != 0) {
+            kprintf("Error Code: 0x%x\n", error_code);
+        }
+        kprintf("System HALTED due to above exception.\n");
+        __asm__ volatile("cli; hlt");  // disable interrupts and halt indefinitely
+    } else {
+        // Hardware IRQ or software interrupt
+        void (*handler)(int) = interrupts_handlers[vector];
+        if (handler) {
+            handler(error_code);  // call the installed handler with the error code (typically 0 for IRQ)
+        } else {
+            // Should not happen since we set a default handler for all, but just in case:
+            kprintf("Warning: No handler for IRQ %u\n", vector);
+        }
+        // Send End-of-Interrupt signal for hardware interrupts if needed
+        apic_send_eoi_if_necessary(vector);
+    }
 }

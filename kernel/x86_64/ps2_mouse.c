@@ -116,5 +116,5 @@ void ps2_mouse_init(void)
 
 	// Setup mouse handler
 	register_interrupt_handler(44, mouse_handler);
-	ioapic_map(12, 44);
+	ioapic_map_irq(12, 44);
 }

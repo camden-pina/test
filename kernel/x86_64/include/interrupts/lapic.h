@@ -1,10 +1,13 @@
-#ifndef _LAPIC_H
-#define _LAPIC_H 1
+#ifndef LAPIC_H
+#define LAPIC_H
 
-void apic_init(void);
-void apic_send_eoi_if_necessary(unsigned char interrupt_vector);
+#include <stdint.h>
+#include <stdbool.h>
 
-void apic_write(int index, unsigned int value);
-unsigned int apic_read(int index);
+// Initialize Local APIC and disable legacy PIC.
+void lapic_init(void);
+
+// Send End-of-Interrupt signal if needed.
+void apic_send_eoi_if_necessary(uint8_t vector);
 
 #endif // LAPIC_H

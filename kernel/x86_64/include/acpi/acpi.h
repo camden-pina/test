@@ -18,9 +18,14 @@ typedef unsigned char acpi_status_t;
 extern struct _acpi_xsdt_t* xsdt;
 extern struct _acpi_fadt_t* fadt;
 
+void io_wait(void);
+
 // Public functions
 void* acpi_locate_table(const char* table);
-_Bool acpi_init(unsigned long long* rsdp_ptr);
+_Bool acpi_init(uint64_t rsdp_addr);
+
+unsigned int acpi_checksum(void *table);
+void* acpi_find_table(const char *sig, size_t index);
 
 // Utility checksum function (used internally)
 unsigned int acpi_checksum(void* ptr);

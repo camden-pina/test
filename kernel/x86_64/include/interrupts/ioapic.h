@@ -1,7 +1,14 @@
-#ifndef _IOAPIC_H
-#define _IOAPIC_H 1
+#ifndef IOAPIC_H
+#define IOAPIC_H
 
-void ioapic_map(unsigned char irq_index, unsigned char idt_index);
-_Bool load_ioapic_address(void);
+#include <stdint.h>
+#include <stdbool.h>
 
-#endif
+// Initialize and map the I/O APIC registers by parsing the ACPI MADT.
+// Returns true if successful, false otherwise.
+bool ioapic_init(void);
+
+// Map an ISA IRQ or GSI to an IDT vector.
+void ioapic_map_irq(uint8_t irq, uint8_t vector);
+
+#endif // IOAPIC_H

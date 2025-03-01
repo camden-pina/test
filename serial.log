@@ -1,7 +1,7 @@
 [2J[01;01H[=3h[2J[01;01H[0m[35m[40m[0m[37m[40mBdsDxe: failed to load Boot0001 "UEFI QEMU DVD-ROM QM00003 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Secondary,Master,0x0): Not Found
 BdsDxe: loading Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
 BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1,0x1)/Ata(Primary,Master,0x0)
-[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1,0x1)/Ata(0x0)/HD(1,GPT,09966B51-04BF-447B-9C81-2E4206225B93,0x800,0x187DF)
+[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1,0x1)/Ata(0x0)/HD(1,GPT,2911EDC3-B132-4A0C-8B4E-219BEB94C277,0x800,0x187DF)
 [Loader] INFO:     Listing directory:
   EFI
   ModernOS
@@ -10,8 +10,8 @@ BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x
 [Loader] WARN:     No config file found
 [Loader] INFO:     Loading kernel
 [Loader] INFO:       phys addr: 0x100000
-[Loader] INFO:       image size: 260768
-[Loader] INFO:       kernel entry: 0xFFFF800000126500
+[Loader] INFO:       image size: 261160
+[Loader] INFO:       kernel entry: 0xFFFF800000126CEE
 [Loader] INFO:       memory size: 245760
 [Loader] INFO:     Loading executable data segment
 [Loader] INFO:       base: 0xFFFF800000100000
@@ -80,48 +80,24 @@ usable memory: 1975 GB
 kernel_reserved_start: 0x1500000
 kernel_reserved_end: 0x7bf36000
 initialized kernel heap
-Initializing ACPI...
-Verifying XSDT checksum...
-Locating FADT...
-Verifying FADT checksum...
-Verifying DSDT checksum...
-laihost_scan() [FACP], [0]
-Total Tables: 5
-Searching for ACPI table with signature FACP at index 0
-Table signature: FACP
-ACPI table FACP found at index 0
-laihost_scan: ACPI table FACP found at index 0
-laihost_scan() [DSDT], [0]
-laihost_scan: DSDT found.
-[1] loaded AML table 'DSDT', total 6836 bytes of AML code.laihost_scan() [SSDT], [0]
-Total Tables: 5
-Searching for ACPI table with signature SSDT at index 0
-Table signature: FACP
-Table signature: APIC
-Table signature: HPET
-Table signature: WAET
-Table signature: BGRT
-ACPI table SSDT not found at index 0
-laihost_scan: Failed to find ACPI table SSDT at index 0
-laihost_scan() [PSDT], [0]
-Total Tables: 5
-Searching for ACPI table with signature PSDT at index 0
-Table signature: FACP
-Table signature: APIC
-Table signature: HPET
-Table signature: WAET
-Table signature: BGRT
-ACPI table PSDT not found at index 0
-laihost_scan: Failed to find ACPI table PSDT at index 0
-[1] ACPI namespace created, total of 349 predefined objects.ACPI initialization complete.
-Initializing APIC
-CPU local APID ID 0x%%x ACPI ID 0x%%x flags 0x%%x
-CPU Count: %
-APIC MSR: fee00900
-Suprious_IRQ_Num: 100
-Initializing IDT...
-Initializing Keyboard
-Initializing MouseModernOS (C)
-
-Copyright (C) Ideal Technologies Inc.
-catdfkjweoi
+ACPI: RSDP revision 2 detected
+ACPI: XSDT located at 0x7fb7d0e8, entries=5
+ACPI: FADT found at 0x7fb7a000
+!!!! X64 Exception Type - 0D(#GP - General Protection)  CPU Apic ID - 00000000 !!!!
+ExceptionData - 0000000000000000
+RIP  - FFFF800000100236, CS  - 0000000000000038, RFLAGS - 0000000000010092
+RAX  - 7FB7B00000000000, RCX - FFFF800000106BF4, RDX - 00000000000003F8
+RBX  - 000000007F91F000, RSP - FFFF800000137DF8, RBP - FFFF800000137E20
+RSI  - 000000000000000A, RDI - 7FB7B00000000000
+R8   - FFFF800000137A98, R9  - 0000000000000010, R10 - 000000007FAE8820
+R11  - 00000000205049D6, R12 - 000000007FB4C000, R13 - 000000007E3E5B64
+R14  - 000000007C3DD000, R15 - 0000000000000000
+DS   - 0000000000000030, ES  - 0000000000000030, FS  - 0000000000000030
+GS   - 0000000000000030, SS  - 0000000000000030
+CR0  - 0000000080010033, CR2 - 7FB7B00000000004, CR3 - 000000007FB4C000
+CR4  - 0000000000000668, CR8 - 0000000000000000
+DR0  - 0000000000000000, DR1 - 0000000000000000, DR2 - 0000000000000000
+DR3  - 0000000000000000, DR6 - 00000000FFFF0FF0, DR7 - 0000000000000400
+GDTR - 000000007F9EEA98 0000000000000047, LDTR - 0000000000000000
+IDTR - 000000007F58A018 0000000000000FFF,   TR - 0000000000000000
+FXSAVE_STATE - FFFF800000137A50

@@ -1,122 +1,138 @@
-.macro save_context
-    push %r15
-    push %r14
-    push %r13
-    push %r12
-    push %r11
-    push %r10
-    push %r9
-    push %r8
-    push %rbp
-    push %rdi
-    push %rsi
-    push %rdx
-    push %rcx
-    push %rbx
-    push %rax
-.endm
+    .section .text
+    .globl isr_common_stub
+    .type isr_common_stub,@function
+isr_common_stub:
+    # Save registers that might be clobbered
+    pushq %rax
+    pushq %rcx
+    pushq %rdx
+    pushq %rbx
+    pushq %rbp
+    pushq %rsi
+    pushq %rdi
+    pushq %r8
+    pushq %r9
+    pushq %r10
+    pushq %r11
+    pushq %r12
+    pushq %r13
+    pushq %r14
+    pushq %r15
 
-.macro restore_context
-    pop %rax
-    pop %rbx
-    pop %rcx
-    pop %rdx
-    pop %rsi
-    pop %rdi
-    pop %rbp
-    pop %r8
-    pop %r9
-    pop %r10
-    pop %r11
-    pop %r12
-    pop %r13
-    pop %r14
-    pop %r15
-#    movdqu xmm15, (rsp)
-#    movdqu xmm14, (rsp+16)
-#    movdqu xmm13, (rsp+32)
-#    movdqu xmm12, (rsp+48)
-#    movdqu xmm11, (rsp+64)
-#    movdqu xmm10, (rsp+80)
-#    movdqu xmm9, (rsp+96)
-#    movdqu xmm8, (rsp+112)
-#    movdqu xmm7, (rsp+128)
-#    movdqu xmm6, (rsp+144)
-#    movdqu xmm5, (rsp+160)
-#    movdqu xmm4, (rsp+176)
-#    movdqu xmm3, (rsp+192)
-#    movdqu xmm2, (rsp+208)
-#    movdqu xmm1, (rsp+224)
-#    movdqu xmm0, (rsp+240)
-.endm
-
-.extern isr_common
-
-.macro isr_noerror num
-.globl isr\num
-isr\num:
-    save_context
-    
-    movq $0, %rsi
-    movq $\num, %rdi
+    # At this point, the stack layout is as follows:
+    #   [vector number] (pushed by our ISR stub macro)
+    #   [error code]    (either pushed as a dummy or automatically by CPU)
+    # then the saved registers (15*8 = 120 bytes).
+    # We load the two arguments for isr_common:
+    #   Offset for vector: 120 bytes (saved regs) + 8 bytes = 128 bytes from %rsp
+    #   Offset for error code: 120 bytes from %rsp
+    movq 128(%rsp), %rdi    # First argument: vector number
+    movl 120(%rsp), %esi    # Second argument: error code (32-bit)
     call isr_common
-    
-    restore_context
-    
-    iretq
-.endm
 
-.macro isr_error num
-.globl isr\num
+    # Restore registers (in reverse order)
+    popq %r15
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %r11
+    popq %r10
+    popq %r9
+    popq %r8
+    popq %rdi
+    popq %rsi
+    popq %rbp
+    popq %rbx
+    popq %rdx
+    popq %rcx
+    popq %rax
+
+    # Clean up the stack: remove the vector and error code pushed by the stub
+    addq $16, %rsp
+
+    # Return from interrupt
+    iretq
+
+# Macro definitions for generating ISR stubs in AT&T syntax.
+.macro ISR_NOERR num
+    .globl isr\num
+    .type isr\num,@function
 isr\num:
-    save_context
-    
-    movq 128(%rsp), %rsi
-    movq $\num, %rdi
-    call isr_common
-    
-    restore_context
-    
-    iretq
+    cli                   # Disable interrupts
+    pushq $0              # Push a dummy error code
+    pushq $\num          # Push the interrupt vector number
+    jmp isr_common_stub
 .endm
 
-isr_noerror 0
-isr_noerror 1
-isr_noerror 2
-isr_noerror 3
-isr_noerror 4
-isr_noerror 5
-isr_error 6    # doesnt give an error code; may change later
-isr_noerror 7
-isr_error 8
-isr_noerror 9
-isr_error 10
-isr_error 11
-isr_error 12
-isr_error 13
-isr_error 14
-isr_noerror 16
-isr_error 17
-isr_noerror 18
-isr_noerror 19
-isr_noerror 20
-# isr 20-29 are reserved
-isr_error 30	# was 'isr_noerror'; table on OsDev says this provides an error code
-#isr 31 is reserved
-isr_noerror 32
-isr_noerror 33
-isr_noerror 34 
-isr_noerror 35
-isr_noerror 36
-isr_noerror 37
-isr_noerror 38
-isr_noerror 39
-isr_noerror 40
-isr_noerror 41
-isr_noerror 42
-isr_noerror 43
-isr_noerror 44
-isr_noerror 45
-isr_noerror 46
-isr_noerror 47
-isr_noerror 128
+.macro ISR_ERR num
+    .globl isr\num
+    .type isr\num,@function
+isr\num:
+    cli                   # Disable interrupts
+    pushq $\num          # Push the interrupt vector number (error code already pushed)
+    jmp isr_common_stub
+.endm
+
+# Generate ISRs for CPU exceptions (vectors 0–31)
+ISR_NOERR 0    # Divide Error
+ISR_NOERR 1    # Debug
+ISR_NOERR 2    # Non-Maskable Interrupt (NMI)
+ISR_NOERR 3    # Breakpoint
+ISR_NOERR 4    # Overflow
+ISR_NOERR 5    # Bound Range Exceeded
+ISR_NOERR 6    # Invalid Opcode
+ISR_NOERR 7    # Device Not Available
+ISR_ERR 8      # Double Fault
+ISR_NOERR 9    # Coprocessor Segment Overrun (reserved)
+ISR_ERR 10     # Invalid TSS
+ISR_ERR 11     # Segment Not Present
+ISR_ERR 12     # Stack-Segment Fault
+ISR_ERR 13     # General Protection Fault
+ISR_ERR 14     # Page Fault
+ISR_NOERR 15   # Reserved
+ISR_NOERR 16   # x87 Floating-Point Exception
+ISR_ERR 17     # Alignment Check
+ISR_NOERR 18   # Machine Check
+ISR_NOERR 19   # SIMD Floating-Point Exception
+ISR_NOERR 20   # Virtualization Exception
+ISR_NOERR 21   # Control Protection Exception
+ISR_NOERR 22   # Reserved
+ISR_NOERR 23   # Hypervisor Injection Exception
+ISR_NOERR 24   # VMM Communication Exception
+ISR_NOERR 25   # Security Exception
+ISR_NOERR 26   # Reserved
+ISR_NOERR 27   # Reserved
+ISR_NOERR 28   # Reserved
+ISR_NOERR 29   # Reserved
+ISR_NOERR 30   # Reserved
+ISR_NOERR 31   # Reserved
+
+# Generate ISRs for hardware IRQs (vectors 32–47)
+ISR_NOERR 32
+ISR_NOERR 33
+ISR_NOERR 34
+ISR_NOERR 35
+ISR_NOERR 36
+ISR_NOERR 37
+ISR_NOERR 38
+ISR_NOERR 39
+ISR_NOERR 40
+ISR_NOERR 41
+ISR_NOERR 42
+ISR_NOERR 43
+ISR_NOERR 44
+ISR_NOERR 45
+ISR_NOERR 46
+ISR_NOERR 47
+
+# System call interrupt (vector 128)
+ISR_NOERR 128
+
+# Spurious Interrupt Handler
+.globl isr_spurious
+.type isr_spurious,@function
+isr_spurious:
+    cli
+    pushq $0
+    pushq $255
+    jmp isr_common_stub
