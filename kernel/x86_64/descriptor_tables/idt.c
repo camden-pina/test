@@ -165,6 +165,8 @@
  
  // Optional: Spurious interrupt handler (e.g., vector 255).
  extern void isr_spurious();
+
+ extern void uhci_isr80();
  
  // -----------------------------------------------------------------------------
  // IDT Initialization
@@ -240,6 +242,8 @@
 	 idt_set_entry(45, (uint64_t)isr45, KERNEL_CS, 0, 0xE, 0, 1);
 	 idt_set_entry(46, (uint64_t)isr46, KERNEL_CS, 0, 0xE, 0, 1);
 	 idt_set_entry(47, (uint64_t)isr47, KERNEL_CS, 0, 0xE, 0, 1);
+
+	 idt_set_entry(0x50, (uint64_t)uhci_isr80, KERNEL_CS, 0, 0xE, 0, 1);
  
 	 // -------------------------------------
 	 // System Call Interrupt (Vector 128)

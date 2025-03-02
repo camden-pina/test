@@ -53,7 +53,7 @@ isr_common_stub:
     # Return from interrupt
     iretq
 
-# Macro definitions for generating ISR stubs in AT&T syntax.
+# Original macros for generating ISR stubs
 .macro ISR_NOERR num
     .globl isr\num
     .type isr\num,@function
@@ -128,7 +128,7 @@ ISR_NOERR 47
 # System call interrupt (vector 128)
 ISR_NOERR 128
 
-# Spurious Interrupt Handler
+# Spurious Interrupt Handler remains unchanged
 .globl isr_spurious
 .type isr_spurious,@function
 isr_spurious:
@@ -136,3 +136,71 @@ isr_spurious:
     pushq $0
     pushq $255
     jmp isr_common_stub
+
+# ----------------------------
+# UHCI-specific ISR Wrapper
+# ----------------------------
+
+    .section .text
+    .globl uhci_isr_common_stub
+    .type uhci_isr_common_stub,@function
+uhci_isr_common_stub:
+    # Save registers (similar to isr_common_stub)
+    pushq %rax
+    pushq %rcx
+    pushq %rdx
+    pushq %rbx
+    pushq %rbp
+    pushq %rsi
+    pushq %rdi
+    pushq %r8
+    pushq %r9
+    pushq %r10
+    pushq %r11
+    pushq %r12
+    pushq %r13
+    pushq %r14
+    pushq %r15
+
+    # Load arguments for UHCI-specific handler:
+    #   The vector number is at offset 120 + 8 = 128, and the error code is at 120.
+    movq 128(%rsp), %rdi    # First argument: vector number
+    movl 120(%rsp), %esi    # Second argument: error code
+    call uhci_interrupt_handler_main
+
+    # Restore registers in reverse order
+    popq %r15
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %r11
+    popq %r10
+    popq %r9
+    popq %r8
+    popq %rdi
+    popq %rsi
+    popq %rbp
+    popq %rbx
+    popq %rdx
+    popq %rcx
+    popq %rax
+
+    # Clean up the stack: remove vector number and error code (16 bytes)
+    addq $16, %rsp
+
+    # Return from interrupt
+    iretq
+
+# Macro for UHCI ISRs (no error code)
+.macro UHCI_ISR_NOERR num
+    .globl uhci_isr\num
+    .type uhci_isr\num,@function
+uhci_isr\num:
+    cli                   # Disable interrupts
+    pushq $0              # Push dummy error code
+    pushq $\num           # Push interrupt vector number
+    jmp uhci_isr_common_stub
+.endm
+
+# Example: Generate UHCI ISR for vector 0x50 (80 decimal)
+UHCI_ISR_NOERR 80

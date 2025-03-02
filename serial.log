@@ -1,21 +1,7 @@
-[2J[01;01H[=3h[2J[01;01H[0m[35m[40m[0m[37m[40mBdsDxe: loading Boot0004 "EFI Internal Shell" from Fv(7CB8BDC9-F8EB-4F34-AAEA-3EE4AF6516A1)/FvFile(7C04A583-9E3E-4F1C-AD65-E05268D0B4D1)
-BdsDxe: starting Boot0004 "EFI Internal Shell" from Fv(7CB8BDC9-F8EB-4F34-AAEA-3EE4AF6516A1)/FvFile(7C04A583-9E3E-4F1C-AD65-E05268D0B4D1)
-[2J[01;01H[01;01HUEFI Interactive Shell v2.2
-EDK II
-UEFI v2.70 (EDK II, 0x00010000)
-[1m[33m[40mMapping table[0m[37m[40m
-[1m[33m[40m      FS0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40mHD0a65535a1:;BLK1:
-          PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,F7382B47-66F5-4BAF-8F49-C459B371FE8E,0x800,0x187DF)
-[1m[33m[40m     BLK0:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
-          PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)
-[1m[33m[40m     BLK2:[0m[37m[40m [1m[37m[40mAlias(s):[0m[37m[40m
-          PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x2,0xFFFF,0x0)
-[12;01HPress [1m[37m[40mESC[0m[37m[40m in 5 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.[12;01HPress [1m[37m[40mESC[0m[37m[40m in 4 seconds to skip [1m[33m[40mstartup.nsh[0m[37m[40m or any other key to continue.
-[13;01H[1m[33m[40mShell> [0m[37m[40m[13;08Hf[13;09H[13;09Hs[13;10H[13;10H0[13;11H[13;11H:[13;12H[13;12H
-[14;01H[1m[33m[40mFS0:\> [0m[37m[40m[14;08Hc[14;09H[14;09Hd[14;10H[14;10H [14;11H[14;11He[14;12H[14;11HEFI[14;14H[14;14H
-[15;01H[1m[33m[40mFS0:\EFI\> [0m[37m[40m[15;12Hc[15;13H[15;13Hd[15;14H[15;14H[15;14H [15;15H[15;15HBOOT[15;19H[15;19H
-[16;01H[1m[33m[40mFS0:\EFI\BOOT\> [0m[37m[40m[16;17HBOOTX64.EFI[16;28H[16;28H
-[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,F7382B47-66F5-4BAF-8F49-C459B371FE8E,0x800,0x187DF)
+[2J[01;01H[=3h[2J[01;01H[0m[35m[40m[0m[37m[40mBdsDxe: failed to load Boot0001 "UEFI QEMU DVD-ROM QM00005 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x2,0xFFFF,0x0): Not Found
+BdsDxe: loading Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)
+BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)
+[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,1C5C579F-6463-463B-99D8-67D77EFF7ABF,0x800,0x187DF)
 [Loader] INFO:     Listing directory:
   EFI
   ModernOS
@@ -24,12 +10,12 @@ UEFI v2.70 (EDK II, 0x00010000)
 [Loader] WARN:     No config file found
 [Loader] INFO:     Loading kernel
 [Loader] INFO:       phys addr: 0x100000
-[Loader] INFO:       image size: 266416
-[Loader] INFO:       kernel entry: 0xFFFF800000127B4F
-[Loader] INFO:       memory size: 262144
+[Loader] INFO:       image size: 279952
+[Loader] INFO:       kernel entry: 0xFFFF80000012983C
+[Loader] INFO:       memory size: 274432
 [Loader] INFO:     Loading executable data segment
 [Loader] INFO:       base: 0xFFFF800000100000
-[Loader] INFO:       size: 0x3F3D8 (64 pages)
+[Loader] INFO:       size: 0x427D4 (67 pages)
 [Loader] WARN:     No .load_sections section found
 [Loader] INFO:     Found .boot_data section
 [Loader] INFO:     Looking for boot info symbol
@@ -37,8 +23,8 @@ UEFI v2.70 (EDK II, 0x00010000)
 [Loader] INFO:     Kernel loaded
 [Loader] INFO:     Done
 [Loader] INFO:     Exiting UEFI...
-Initializing PMM with memory map size: 720 bytes
-Total memory map entries: 30
+Initializing PMM with memory map size: 624 bytes
+Total memory map entries: 26
 Entry 0: Start=0, Type=3
   [0x0-0x1000] reserved (4096)
 Entry 1: Start=0x1000, Type=2
@@ -58,46 +44,38 @@ Entry 7: Start=0x1500000, Type=2
 Entry 8: Start=0x7bf36000, Type=3
   [0x7bf36000-0x7bf56000] reserved (131072)
 Entry 9: Start=0x7bf56000, Type=2
-  [0x7bf56000-0x7c14c000] usable (2056192)
-Entry 10: Start=0x7c14c000, Type=8
-  [0x7c14c000-0x7e14c000] EFI runtime data (33554432)
-Entry 11: Start=0x7e14c000, Type=2
-  [0x7e14c000-0x7e265000] usable (1150976)
-Entry 12: Start=0x7e265000, Type=3
-  [0x7e265000-0x7e283000] reserved (122880)
-Entry 13: Start=0x7e283000, Type=2
-  [0x7e283000-0x7e289000] usable (24576)
-Entry 14: Start=0x7e289000, Type=3
-  [0x7e289000-0x7e28a000] reserved (4096)
-Entry 15: Start=0x7e28a000, Type=2
-  [0x7e28a000-0x7e28d000] usable (12288)
-Entry 16: Start=0x7e28d000, Type=3
-  [0x7e28d000-0x7f034000] reserved (14315520)
-Entry 17: Start=0x7f034000, Type=8
+  [0x7bf56000-0x7c27d000] usable (3305472)
+Entry 10: Start=0x7c27d000, Type=8
+  [0x7c27d000-0x7e27d000] EFI runtime data (33554432)
+Entry 11: Start=0x7e27d000, Type=2
+  [0x7e27d000-0x7e28b000] usable (57344)
+Entry 12: Start=0x7e28b000, Type=3
+  [0x7e28b000-0x7f034000] reserved (14323712)
+Entry 13: Start=0x7f034000, Type=8
   [0x7f034000-0x7f0be000] EFI runtime data (565248)
-Entry 18: Start=0x7f0be000, Type=3
+Entry 14: Start=0x7f0be000, Type=3
   [0x7f0be000-0x7f8ef000] reserved (8589312)
-Entry 19: Start=0x7f8ef000, Type=8
+Entry 15: Start=0x7f8ef000, Type=8
   [0x7f8ef000-0x7f9ef000] EFI runtime data (1048576)
-Entry 20: Start=0x7f9ef000, Type=7
+Entry 16: Start=0x7f9ef000, Type=7
   [0x7f9ef000-0x7faef000] EFI runtime code (1048576)
-Entry 21: Start=0x7faef000, Type=3
+Entry 17: Start=0x7faef000, Type=3
   [0x7faef000-0x7fb6f000] reserved (524288)
-Entry 22: Start=0x7fb6f000, Type=4
+Entry 18: Start=0x7fb6f000, Type=4
   [0x7fb6f000-0x7fb7f000] ACPI data (65536)
-Entry 23: Start=0x7fb7f000, Type=5
+Entry 19: Start=0x7fb7f000, Type=5
   [0x7fb7f000-0x7fbff000] ACPI NVS (524288)
-Entry 24: Start=0x7fbff000, Type=3
+Entry 20: Start=0x7fbff000, Type=3
   [0x7fbff000-0x7fe00000] reserved (2101248)
-Entry 25: Start=0x7fe00000, Type=2
+Entry 21: Start=0x7fe00000, Type=2
   [0x7fe00000-0x7fe9e000] usable (647168)
-Entry 26: Start=0x7fe9e000, Type=3
+Entry 22: Start=0x7fe9e000, Type=3
   [0x7fe9e000-0x7fef4000] reserved (352256)
-Entry 27: Start=0x7fef4000, Type=8
+Entry 23: Start=0x7fef4000, Type=8
   [0x7fef4000-0x7ff78000] EFI runtime data (540672)
-Entry 28: Start=0x7ff78000, Type=5
+Entry 24: Start=0x7ff78000, Type=5
   [0x7ff78000-0x80000000] ACPI NVS (557056)
-Entry 29: Start=0xb0000000, Type=3
+Entry 25: Start=0xb0000000, Type=3
   [0xb0000000-0xc0000000] reserved (268435456)
 total memory: 2303 GB
 usable memory: 1973 GB
@@ -108,7 +86,7 @@ ACPI: RSDP revision 2 detected
 ACPI: XSDT located at 0x7fb7d0e8, entries=6
 ACPI: FADT found at 0x7fb79000
 ACPI: DSDT found at 0x7fb7a000
-[ACPI1] loaded AML table 'DSDT', total 8372 bytes of AML code.[ACPI1] ACPI namespace created, total of 260 predefined objects.ACPI: Namespace initialized via LAI
+[ACPI1] loaded AML table 'DSDT', total 8440 bytes of AML code.[ACPI1] ACPI namespace created, total of 268 predefined objects.ACPI: Namespace initialized via LAI
 ACPI initialization complete.
 Initializing Local APIC...
 Disabling legacy 8259 PIC...
@@ -124,287 +102,145 @@ ModernOS (C)
 
 Initializing PCI subsystem...
 ACPI: MCFG found at 0x7fb76000
-MCFG base found: 0x7fb76000
-PCI Device: Bus 0, Slot 0, Func 0, Vendor: Unknown Vendor (0x434d), Device: Unknown Device (0x4746), Class: 0x4f
-PCI Device: Bus 0, Slot 1, Func 0, Vendor: Unknown Vendor (0x5352), Device: Unknown Device (0x2044), Class: 0x43
-PCI Device: Bus 0, Slot 2, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 2, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 2, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 2, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 2, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 2, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 2, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 2, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 3, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 3, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 3, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 3, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 3, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 3, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 3, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 3, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 4, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 4, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 4, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 4, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 4, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 4, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 4, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 4, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 5, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 5, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 5, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 5, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 5, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 5, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 5, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 5, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 6, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 6, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 6, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 6, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 6, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 6, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 6, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 6, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 7, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 7, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 7, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 7, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 7, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 7, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 7, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 7, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 8, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 8, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 8, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 8, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 8, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 8, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 8, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 8, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 9, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 9, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 9, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 9, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 9, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 9, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 9, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 9, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 10, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 10, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 10, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 10, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 10, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 10, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 10, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 10, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 11, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 11, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 11, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 11, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 11, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 11, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 11, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 11, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 12, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 12, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 12, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 12, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 12, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 12, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 12, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 12, Func 7, Vendor: Unknown Vendor (0x4146), Device: Unknown Device (0x5343), Class: 0x0
-PCI Device: Bus 0, Slot 13, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 13, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 13, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 13, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 13, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 13, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 13, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 13, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 14, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 14, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 14, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 14, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 14, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 14, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 14, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 14, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 15, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 15, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 15, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 15, Func 3, Vendor: Unknown Vendor (0xaa), Device: Unknown Device (0x10d), Class: 0xaf
-PCI Device: Bus 0, Slot 15, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 15, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 15, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-PCI Device: Bus 0, Slot 15, Func 7, Vendor: Unknown Vendor (0x5a4d), Device: Unknown Device (0x0), Class: 0x0
-PCI Device: Bus 0, Slot 16, Func 0, Vendor: Unknown Vendor (0x3), Device: Unknown Device (0xc300), Class: 0xc3
-PCI Device: Bus 0, Slot 17, Func 0, Vendor: Unknown Vendor (0xfff), Device: Unknown Device (0xb000), Class: 0xd0
-PCI Device: Bus 0, Slot 17, Func 1, Vendor: Unknown Vendor (0x6d6d), Device: Unknown Device (0x7061), Class: 0x7e
-PCI Device: Bus 0, Slot 17, Func 2, Vendor: Unknown Vendor (0x0), Device: Unknown Device (0x7fc0), Class: 0x0
-PCI Device: Bus 0, Slot 17, Func 3, Vendor: Unknown Vendor (0x2023), Device: Unknown Device (0x7fc0), Class: 0x0
-PCI Device: Bus 0, Slot 17, Func 4, Vendor: Unknown Vendor (0x3023), Device: Unknown Device (0x7fc0), Class: 0x7f
-PCI Device: Bus 0, Slot 17, Func 5, Vendor: Unknown Vendor (0xe3), Device: Unknown Device (0x0), Class: 0x0
-PCI Device: Bus 0, Slot 17, Func 6, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0x4000), Class: 0x40
-PCI Device: Bus 0, Slot 17, Func 7, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0x8000), Class: 0x80
-PCI Device: Bus 0, Slot 18, Func 0, Vendor: Unknown Vendor (0xe3), Device: Unknown Device (0xc000), Class: 0xc0
-PCI Device: Bus 0, Slot 19, Func 0, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0xc000), Class: 0xc0
-PCI Device: Bus 0, Slot 20, Func 0, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0xc000), Class: 0xc0
-PCI Device: Bus 0, Slot 21, Func 0, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0xc000), Class: 0xc0
-PCI Device: Bus 0, Slot 22, Func 0, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0xc000), Class: 0xc0
-PCI Device: Bus 0, Slot 23, Func 0, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0xc000), Class: 0xc0
-PCI Device: Bus 0, Slot 24, Func 0, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0xc000), Class: 0xc0
-PCI Device: Bus 0, Slot 25, Func 0, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0xc000), Class: 0xc0
-PCI Device: Bus 0, Slot 26, Func 0, Vendor: Unknown Vendor (0x0), Device: Unknown Device (0x0), Class: 0x0
-PCI Device: Bus 0, Slot 27, Func 0, Vendor: Unknown Vendor (0x0), Device: Unknown Device (0x0), Class: 0x0
-PCI Device: Bus 0, Slot 28, Func 0, Vendor: Unknown Vendor (0x0), Device: Unknown Device (0x0), Class: 0x0
-PCI Device: Bus 0, Slot 29, Func 0, Vendor: Unknown Vendor (0x0), Device: Unknown Device (0x0), Class: 0x0
-PCI Device: Bus 0, Slot 30, Func 0, Vendor: Unknown Vendor (0x0), Device: Unknown Device (0x0), Class: 0x0
-PCI Device: Bus 0, Slot 31, Func 0, Vendor: Unknown Vendor (0x0), Device: Unknown Device (0x0), Class: 0x0
------ PCI Scan Summary -----
-Total PCI devices found: 137
-Device 0: Bus 0, Slot 0, Func 0, Vendor: Unknown Vendor (0x434d), Device: Unknown Device (0x4746), Class: 0x4f
-Device 1: Bus 0, Slot 1, Func 0, Vendor: Unknown Vendor (0x5352), Device: Unknown Device (0x2044), Class: 0x43
-Device 2: Bus 0, Slot 2, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 3: Bus 0, Slot 2, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 4: Bus 0, Slot 2, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 5: Bus 0, Slot 2, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 6: Bus 0, Slot 2, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 7: Bus 0, Slot 2, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 8: Bus 0, Slot 2, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 9: Bus 0, Slot 2, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 10: Bus 0, Slot 3, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 11: Bus 0, Slot 3, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 12: Bus 0, Slot 3, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 13: Bus 0, Slot 3, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 14: Bus 0, Slot 3, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 15: Bus 0, Slot 3, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 16: Bus 0, Slot 3, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 17: Bus 0, Slot 3, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 18: Bus 0, Slot 4, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 19: Bus 0, Slot 4, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 20: Bus 0, Slot 4, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 21: Bus 0, Slot 4, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 22: Bus 0, Slot 4, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 23: Bus 0, Slot 4, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 24: Bus 0, Slot 4, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 25: Bus 0, Slot 4, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 26: Bus 0, Slot 5, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 27: Bus 0, Slot 5, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 28: Bus 0, Slot 5, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 29: Bus 0, Slot 5, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 30: Bus 0, Slot 5, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 31: Bus 0, Slot 5, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 32: Bus 0, Slot 5, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 33: Bus 0, Slot 5, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 34: Bus 0, Slot 6, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 35: Bus 0, Slot 6, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 36: Bus 0, Slot 6, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 37: Bus 0, Slot 6, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 38: Bus 0, Slot 6, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 39: Bus 0, Slot 6, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 40: Bus 0, Slot 6, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 41: Bus 0, Slot 6, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 42: Bus 0, Slot 7, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 43: Bus 0, Slot 7, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 44: Bus 0, Slot 7, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 45: Bus 0, Slot 7, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 46: Bus 0, Slot 7, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 47: Bus 0, Slot 7, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 48: Bus 0, Slot 7, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 49: Bus 0, Slot 7, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 50: Bus 0, Slot 8, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 51: Bus 0, Slot 8, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 52: Bus 0, Slot 8, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 53: Bus 0, Slot 8, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 54: Bus 0, Slot 8, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 55: Bus 0, Slot 8, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 56: Bus 0, Slot 8, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 57: Bus 0, Slot 8, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 58: Bus 0, Slot 9, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 59: Bus 0, Slot 9, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 60: Bus 0, Slot 9, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 61: Bus 0, Slot 9, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 62: Bus 0, Slot 9, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 63: Bus 0, Slot 9, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 64: Bus 0, Slot 9, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 65: Bus 0, Slot 9, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 66: Bus 0, Slot 10, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 67: Bus 0, Slot 10, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 68: Bus 0, Slot 10, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 69: Bus 0, Slot 10, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 70: Bus 0, Slot 10, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 71: Bus 0, Slot 10, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 72: Bus 0, Slot 10, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 73: Bus 0, Slot 10, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 74: Bus 0, Slot 11, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 75: Bus 0, Slot 11, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 76: Bus 0, Slot 11, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 77: Bus 0, Slot 11, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 78: Bus 0, Slot 11, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 79: Bus 0, Slot 11, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 80: Bus 0, Slot 11, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 81: Bus 0, Slot 11, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 82: Bus 0, Slot 12, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 83: Bus 0, Slot 12, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 84: Bus 0, Slot 12, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 85: Bus 0, Slot 12, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 86: Bus 0, Slot 12, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 87: Bus 0, Slot 12, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 88: Bus 0, Slot 12, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 89: Bus 0, Slot 12, Func 7, Vendor: Unknown Vendor (0x4146), Device: Unknown Device (0x5343), Class: 0x0
-Device 90: Bus 0, Slot 13, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 91: Bus 0, Slot 13, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 92: Bus 0, Slot 13, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 93: Bus 0, Slot 13, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 94: Bus 0, Slot 13, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 95: Bus 0, Slot 13, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 96: Bus 0, Slot 13, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 97: Bus 0, Slot 13, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 98: Bus 0, Slot 14, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 99: Bus 0, Slot 14, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 100: Bus 0, Slot 14, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 101: Bus 0, Slot 14, Func 3, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 102: Bus 0, Slot 14, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 103: Bus 0, Slot 14, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 104: Bus 0, Slot 14, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 105: Bus 0, Slot 14, Func 7, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 106: Bus 0, Slot 15, Func 0, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 107: Bus 0, Slot 15, Func 1, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 108: Bus 0, Slot 15, Func 2, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 109: Bus 0, Slot 15, Func 3, Vendor: Unknown Vendor (0xaa), Device: Unknown Device (0x10d), Class: 0xaf
-Device 110: Bus 0, Slot 15, Func 4, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 111: Bus 0, Slot 15, Func 5, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 112: Bus 0, Slot 15, Func 6, Vendor: Unknown Vendor (0xafaf), Device: Unknown Device (0xafaf), Class: 0xaf
-Device 113: Bus 0, Slot 15, Func 7, Vendor: Unknown Vendor (0x5a4d), Device: Unknown Device (0x0), Class: 0x0
-Device 114: Bus 0, Slot 16, Func 0, Vendor: Unknown Vendor (0x3), Device: Unknown Device (0xc300), Class: 0xc3
-Device 115: Bus 0, Slot 17, Func 0, Vendor: Unknown Vendor (0xfff), Device: Unknown Device (0xb000), Class: 0xd0
-Device 116: Bus 0, Slot 17, Func 1, Vendor: Unknown Vendor (0x6d6d), Device: Unknown Device (0x7061), Class: 0x7e
-Device 117: Bus 0, Slot 17, Func 2, Vendor: Unknown Vendor (0x0), Device: Unknown Device (0x7fc0), Class: 0x0
-Device 118: Bus 0, Slot 17, Func 3, Vendor: Unknown Vendor (0x2023), Device: Unknown Device (0x7fc0), Class: 0x0
-Device 119: Bus 0, Slot 17, Func 4, Vendor: Unknown Vendor (0x3023), Device: Unknown Device (0x7fc0), Class: 0x7f
-Device 120: Bus 0, Slot 17, Func 5, Vendor: Unknown Vendor (0xe3), Device: Unknown Device (0x0), Class: 0x0
-Device 121: Bus 0, Slot 17, Func 6, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0x4000), Class: 0x40
-Device 122: Bus 0, Slot 17, Func 7, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0x8000), Class: 0x80
-Device 123: Bus 0, Slot 18, Func 0, Vendor: Unknown Vendor (0xe3), Device: Unknown Device (0xc000), Class: 0xc0
-Device 124: Bus 0, Slot 19, Func 0, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0xc000), Class: 0xc0
-Device 125: Bus 0, Slot 20, Func 0, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0xc000), Class: 0xc0
-Device 126: Bus 0, Slot 21, Func 0, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0xc000), Class: 0xc0
-Device 127: Bus 0, Slot 22, Func 0, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0xc000), Class: 0xc0
-Device 128: Bus 0, Slot 23, Func 0, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0xc000), Class: 0xc0
-Device 129: Bus 0, Slot 24, Func 0, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0xc000), Class: 0xc0
-Device 130: Bus 0, Slot 25, Func 0, Vendor: Unknown Vendor (0x83), Device: Unknown Device (0xc000), Class: 0xc0
-Device 131: Bus 0, Slot 26, Func 0, Vendor: Unknown Vendor (0x0), Device: Unknown Device (0x0), Class: 0x0
-Device 132: Bus 0, Slot 27, Func 0, Vendor: Unknown Vendor (0x0), Device: Unknown Device (0x0), Class: 0x0
-Device 133: Bus 0, Slot 28, Func 0, Vendor: Unknown Vendor (0x0), Device: Unknown Device (0x0), Class: 0x0
-Device 134: Bus 0, Slot 29, Func 0, Vendor: Unknown Vendor (0x0), Device: Unknown Device (0x0), Class: 0x0
-Device 135: Bus 0, Slot 30, Func 0, Vendor: Unknown Vendor (0x0), Device: Unknown Device (0x0), Class: 0x0
-Device 136: Bus 0, Slot 31, Func 0, Vendor: Unknown Vendor (0x0), Device: Unknown Device (0x0), Class: 0x0
------------------------------
+PCI: Using PCIe MMCONFIG at 0xb0000000
+PCI: [00:00.0] Intel (VID 0x8086) - 82G33/G31/P35/P31 Express DRAM Controller (DID 0x29c0), Class 0x06 Subclass 0x00
+PCI: [00:01.0] Unknown Vendor (VID 0x1234) - Unknown Device (DID 0x1111), Class 0x03 Subclass 0x00
+PCI: [00:02.0] Intel (VID 0x8086) - 82540EM Gigabit Ethernet (DID 0x100e), Class 0x02 Subclass 0x00
+PCI: [00:1d.0] Intel (VID 0x8086) - Unknown Device (DID 0x2934), Class 0x0c Subclass 0x03
+PCI: [00:1d.1] Intel (VID 0x8086) - Unknown Device (DID 0x2935), Class 0x0c Subclass 0x03
+PCI: [00:1d.2] Intel (VID 0x8086) - Unknown Device (DID 0x2936), Class 0x0c Subclass 0x03
+PCI: [00:1d.7] Intel (VID 0x8086) - Unknown Device (DID 0x293a), Class 0x0c Subclass 0x03
+PCI: [00:1f.0] Intel (VID 0x8086) - 82801IB (ICH9) LPC Interface Controller (DID 0x2918), Class 0x06 Subclass 0x01
+PCI: [00:1f.2] Intel (VID 0x8086) - ICH9 AHCI SATA Controller (DID 0x2922), Class 0x01 Subclass 0x06
+PCI: [00:1f.3] Intel (VID 0x8086) - 82801I (ICH9 Family) SMBus Controller (DID 0x2930), Class 0x0c Subclass 0x05
+PCI: Found 10 PCI device(s)
 Initializing USB subsystem...
-No USB host controller found via PCI; simulating controller.
-USB keyboard detected at address 1.
+INTERFACE [0]
+UHCI: Invalid IRQ (0) reported; defaulting to IRQ 11
+UHCI: Using default IRQ 11
+IOAPIC: Mapping IRQ 11 -> IDT vector 80
+UHCI: Mapped IRQ 11 to IDT vector 0x50
+USB: Initialized UHCI controller on bus 0 slot 29 with 8 ports
+UHCI: IRQ already registered, skipping registration.
+USB: Device connected on controller UHCI port 0 (low_speed=0), assigned address 1
+UHCI: TD timeout, token = 0x80080000
+UHCI: Setup stage failed
+USB: Failed to get short device descriptor (port 0)
+USB: Device connected on controller UHCI port 1 (low_speed=0), assigned address 2
+UHCI: TD timeout, token = 0x80080000
+UHCI: Setup stage failed
+USB: Failed to get short device descriptor (port 1)
+USB: Device connected on controller UHCI port 2 (low_speed=1), assigned address 3
+UHCI: TD timeout, token = 0x80080000
+UHCI: Setup stage failed
+USB: Failed to get short device descriptor (port 2)
+USB: Device connected on controller UHCI port 3 (low_speed=1), assigned address 4
+UHCI: TD timeout, token = 0x80080000
+UHCI: Setup stage failed
+USB: Failed to get short device descriptor (port 3)
+USB: Device connected on controller UHCI port 4 (low_speed=1), assigned address 5
+UHCI: TD timeout, token = 0x80080000
+UHCI: Setup stage failed
+USB: Failed to get short device descriptor (port 4)
+USB: Device connected on controller UHCI port 5 (low_speed=1), assigned address 6
+UHCI: TD timeout, token = 0x80080000
+UHCI: Setup stage failed
+USB: Failed to get short device descriptor (port 5)
+USB: Device connected on controller UHCI port 6 (low_speed=1), assigned address 7
+UHCI: TD timeout, token = 0x80080000
+UHCI: Setup stage failed
+USB: Failed to get short device descriptor (port 6)
+USB: Device connected on controller UHCI port 7 (low_speed=1), assigned address 8
+UHCI: TD timeout, token = 0x80080000
+UHCI: Setup stage failed
+USB: Failed to get short device descriptor (port 7)
+INTERFACE [0]
+UHCI: IRQ already registered, skipping registration.
+USB: Initialized UHCI controller on bus 0 slot 29 with 8 ports
+UHCI: IRQ already registered, skipping registration.
+USB: Device connected on controller UHCI port 2 (low_speed=1), assigned address 9
+UHCI: TD timeout, token = 0x80080000
+UHCI: Setup stage failed
+USB: Failed to get short device descriptor (port 2)
+USB: Device connected on controller UHCI port 3 (low_speed=1), assigned address 10
+UHCI: TD timeout, token = 0x80080000
+UHCI: Setup stage failed
+USB: Failed to get short device descriptor (port 3)
+USB: Device connected on controller UHCI port 4 (low_speed=1), assigned address 11
+UHCI: TD timeout, token = 0x80080000
+UHCI: Setup stage failed
+USB: Failed to get short device descriptor (port 4)
+USB: Device connected on controller UHCI port 5 (low_speed=1), assigned address 12
+UHCI: TD timeout, token = 0x80080000
+UHCI: Setup stage failed
+USB: Failed to get short device descriptor (port 5)
+USB: Device connected on controller UHCI port 6 (low_speed=1), assigned address 13
+UHCI: TD timeout, token = 0x80080000
+UHCI: Setup stage failed
+USB: Failed to get short device descriptor (port 6)
+USB: Device connected on controller UHCI port 7 (low_speed=1), assigned address 14
+UHCI: TD timeout, token = 0x80080000
+UHCI: Setup stage failed
+USB: Failed to get short device descriptor (port 7)
+INTERFACE [0]
+UHCI: IRQ already registered, skipping registration.
+USB: Initialized UHCI controller on bus 0 slot 29 with 8 ports
+UHCI: IRQ already registered, skipping registration.
+USB: Device connected on controller UHCI port 2 (low_speed=1), assigned address 15
+UHCI: TD timeout, token = 0x80080000
+UHCI: Setup stage failed
+USB: Failed to get short device descriptor (port 2)
+USB: Device connected on controller UHCI port 3 (low_speed=1), assigned address 16
+UHCI: TD timeout, token = 0x80080000
+UHCI: Setup stage failed
+USB: Failed to get short device descriptor (port 3)
+USB: Max device limit reached, cannot enumerate port 4
+USB: Max device limit reached, cannot enumerate port 5
+USB: Max device limit reached, cannot enumerate port 6
+USB: Max device limit reached, cannot enumerate port 7
+INTERFACE [32]
+EHCI: Capability length = 32, HCIVersion = 0x0100
+EHCI: Initialized controller on bus 0 slot 29 with 6 ports
+EHCI: Port 1 status = 0x00000000
+EHCI: Port 2 status = 0x00000000
+EHCI: Port 3 status = 0x00000000
+EHCI: Port 4 status = 0x00000000
+EHCI: Port 5 status = 0x00000000
+EHCI: Port 6 status = 0x00000000
 Initializing USB keyboard driver...
+Total USB Devices: 16[0]
+[0]
+[0]
+[0]
+[0]
+[0]
+[0]
+[0]
+[0]
+[0]
+[0]
+[0]
+[0]
+[0]
+[0]
+[0]
+USB Keyboard: No USB keyboard detected.
+USB: 16 device(s) discovered:
+  Device 1: Address = 1, Type = Unknown USB Device, Controller = UHCI
+  Device 2: Address = 2, Type = Unknown USB Device, Controller = UHCI
+  Device 3: Address = 3, Type = Unknown USB Device, Controller = UHCI
+  Device 4: Address = 4, Type = Unknown USB Device, Controller = UHCI
+  Device 5: Address = 5, Type = Unknown USB Device, Controller = UHCI
+  Device 6: Address = 6, Type = Unknown USB Device, Controller = UHCI
+  Device 7: Address = 7, Type = Unknown USB Device, Controller = UHCI
+  Device 8: Address = 8, Type = Unknown USB Device, Controller = UHCI
+  Device 9: Address = 9, Type = Unknown USB Device, Controller = UHCI
+  Device 10: Address = 10, Type = Unknown USB Device, Controller = UHCI
+  Device 11: Address = 11, Type = Unknown USB Device, Controller = UHCI
+  Device 12: Address = 12, Type = Unknown USB Device, Controller = UHCI
+  Device 13: Address = 13, Type = Unknown USB Device, Controller = UHCI
+  Device 14: Address = 14, Type = Unknown USB Device, Controller = UHCI
+  Device 15: Address = 15, Type = Unknown USB Device, Controller = UHCI
+  Device 16: Address = 16, Type = Unknown USB Device, Controller = UHCI
 Copyright (C) Ideal Technologies Inc.
 cat

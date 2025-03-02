@@ -2,255 +2,289 @@
 #include <io.h>
 #include <printf.h>
 #include <acpi/acpi.h>
-#include <stdint.h>
+#include <panic.h>
 
-#define PCI_MAX_SLOT       32
-#define PCI_MAX_FUNC       8
-#define PCI_MAX_DEVICES    256
+#define PCI_MAX_FUNCTIONS 8
+#define PCI_MAX_DEVICES   256
 
-// Definitions for identifying PCI-to-PCI bridges.
-#define PCI_CLASS_BRIDGE          0x06
-#define PCI_SUBCLASS_PCI_BRIDGE   0x04
+// Global array of discovered PCI devices
+static pci_device_t pci_devices[PCI_MAX_DEVICES];
+static int pci_device_count = 0;
+static uint64_t pci_mcfg_base = 0;
 
-// Global array to hold discovered PCI devices.
-static pci_device_t devices[PCI_MAX_DEVICES];
-static int device_count = 0;
-static uint64_t mcfg_base = 0;
+// Lookup table for common PCI device names (for logging)
+static const struct {
+    uint16_t vendor, device;
+    const char *vendor_name, *device_name;
+} pci_known_ids[] = {
 
-/*
- * PCI IDs structure for mapping numeric IDs to friendly names.
- */
-typedef struct {
-    uint16_t vendor_id;
-    uint16_t device_id;
-    const char *vendor_name;
-    const char *device_name;
-} pci_id_t;
+    // -------------------- INTEL --------------------
+    // Intel Ethernet Controllers
+    {0x8086, 0x100E, "Intel", "82540EM Gigabit Ethernet"},
+    {0x8086, 0x1533, "Intel", "I210 Gigabit Network Connection"},
+    {0x8086, 0x10D3, "Intel", "82574L Gigabit Network Connection"},
+    {0x8086, 0x15B8, "Intel", "Ethernet Connection I219-V"},
 
-// Minimal lookup table. Extend this table as needed.
-static pci_id_t pci_ids[] = {
-    { 0x8086, 0x100e, "Intel Corporation", "82540EM Gigabit Ethernet Controller" },
-    { 0x10de, 0x1cb3, "NVIDIA Corporation", "GeForce GTX 1060" },
-    // Add additional entries here...
-    { 0x0000, 0x0000, "Unknown", "Unknown" } // Sentinel entry.
+    // Intel DRAM Controllers
+    {0x8086, 0x29c0, "Intel", "82G33/G31/P35/P31 Express DRAM Controller"},
+    
+    // Intel Graphics (iGPU)
+    {0x8086, 0x3E98, "Intel", "UHD Graphics 630"},
+    {0x8086, 0x5912, "Intel", "HD Graphics 630"},
+    {0x8086, 0x9BC5, "Intel", "Iris Xe Graphics"},
+    
+    // Intel USB Controllers
+    {0x8086, 0x8C31, "Intel", "USB 3.0 eXtensible Host Controller"},
+    {0x8086, 0xA36D, "Intel", "Cannon Lake PCH USB 3.1 xHCI Controller"},
+    {0x8086, 0x24cd, "Intel", "82801DB/DBM (ICH4/ICH4-M) USB2 EHCI Controller"},
+    {0x8086, 0x2918, "Intel", "82801IB (ICH9) LPC Interface Controller"},
+    {0x8086, 0x2930, "Intel", "82801I (ICH9 Family) SMBus Controller"},
+    
+    // Intel SATA Controllers
+    {0x8086, 0x2922, "Intel", "ICH9 AHCI SATA Controller"},
+    {0x8086, 0x8C02, "Intel", "8 Series/C220 Series AHCI Controller"},
+    
+    // Intel NVMe Controllers
+    {0x8086, 0x0953, "Intel", "SSD 750 Series NVMe Controller"},
+
+    // -------------------- AMD --------------------
+    // AMD Graphics (Radeon)
+    {0x1002, 0x67DF, "AMD", "Radeon RX 580"},
+    {0x1002, 0x731F, "AMD", "Radeon RX 5700 XT"},
+    {0x1002, 0x73BF, "AMD", "Radeon RX 6800 XT"},
+    
+    // AMD Ethernet
+    {0x1022, 0x2000, "AMD", "PCnet-PCI Ethernet Adapter"},
+
+    // AMD USB Controllers
+    {0x1022, 0x145C, "AMD", "X370 USB 3.1 Controller"},
+    
+    // AMD SATA Controllers
+    {0x1022, 0x7901, "AMD", "SB7x0/SB8x0/SB9x0 SATA Controller"},
+
+    // -------------------- NVIDIA --------------------
+    {0x10DE, 0x1C82, "NVIDIA", "GeForce GTX 1050 Ti"},
+    {0x10DE, 0x2184, "NVIDIA", "GeForce RTX 3060"},
+    {0x10DE, 0x2204, "NVIDIA", "GeForce RTX 3080 Ti"},
+    {0x10DE, 0x2482, "NVIDIA", "GeForce RTX 4090"},
+
+    // -------------------- REALTEK --------------------
+    {0x10EC, 0x8139, "Realtek", "RTL-8139 Fast Ethernet"},
+    {0x10EC, 0x8168, "Realtek", "RTL8111/8168/8411 PCI Express Gigabit Ethernet"},
+    {0x10EC, 0x8125, "Realtek", "RTL8125 2.5Gb Ethernet"},
+
+    // -------------------- BROADCOM --------------------
+    {0x14E4, 0x165F, "Broadcom", "NetXtreme BCM5719 Gigabit Ethernet"},
+    {0x14E4, 0x16A1, "Broadcom", "BCM57416 NetXtreme-E 10Gb Ethernet"},
+    
+    // Broadcom Wi-Fi
+    {0x14E4, 0x43A0, "Broadcom", "BCM4360 802.11ac Wireless Network Adapter"},
+    {0x14E4, 0x43B1, "Broadcom", "BCM4352 802.11ac Wireless Network Adapter"},
+
+    // -------------------- QUALCOMM ATHEROS --------------------
+    {0x168C, 0x003E, "Qualcomm Atheros", "QCA6174 802.11ac Wireless Network Adapter"},
+    {0x168C, 0x0042, "Qualcomm Atheros", "QCA9377 802.11ac Wireless Network Adapter"},
+
+    // -------------------- ASMEDIA --------------------
+    {0x1B21, 0x0612, "ASMedia", "ASM1062 SATA Controller"},
+    {0x1B21, 0x1242, "ASMedia", "ASM2142 USB 3.1 Host Controller"},
+
+    // -------------------- MARVELL --------------------
+    {0x1B4B, 0x9235, "Marvell", "88SE9235 PCIe SATA Controller"},
+
+    // -------------------- VMWARE & VIRTUALIZATION --------------------
+    {0x15AD, 0x0405, "VMware", "VMXNET3 Ethernet Adapter"},
+    {0x15AD, 0x0770, "VMware", "SVGA II Adapter"},
+    {0x1AF4, 0x1000, "VirtIO", "VirtIO Network Adapter"},
+    {0x1AF4, 0x1042, "VirtIO", "VirtIO Block Device"},
+    {0x1AF4, 0x1052, "VirtIO", "VirtIO GPU Device"},
+
+    // -------------------- USB CONTROLLERS --------------------
+    {0x1033, 0x0194, "NEC", "USB 3.0 Host Controller"},
+    {0x1B6F, 0x7052, "Etron", "USB 3.0 xHCI Controller"},
+    {0x1D6A, 0x07B1, "Google", "Titan Security Key"},
+
+    // -------------------- SOUND CARDS --------------------
+    {0x8086, 0xA170, "Intel", "HD Audio Controller"},
+    {0x1102, 0x0004, "Creative", "Sound Blaster Audigy"},
+    {0x10EC, 0x0887, "Realtek", "ALC887 HD Audio Codec"},
+    
+    // -------------------- STORAGE --------------------
+    {0x144D, 0xA808, "Samsung", "NVMe SSD Controller (Samsung 970 EVO)"},
+    {0x1C5C, 0x1327, "Phison", "E12 NVMe SSD Controller"},
+
+    // -------------------- FALLBACK --------------------
+    {0, 0, "Unknown", "Unknown"}
 };
 
-static const char* get_vendor_name(uint16_t vendor) {
-    for (int i = 0; pci_ids[i].vendor_id != 0x0000; i++) {
-        if (pci_ids[i].vendor_id == vendor)
-            return pci_ids[i].vendor_name;
-    }
+static const char* pci_lookup_vendor(uint16_t vid) {
+    for (int i = 0; pci_known_ids[i].vendor; ++i)
+        if (pci_known_ids[i].vendor == vid) return pci_known_ids[i].vendor_name;
     return "Unknown Vendor";
 }
-
-static const char* get_device_name(uint16_t vendor, uint16_t device) {
-    for (int i = 0; pci_ids[i].vendor_id != 0x0000; i++) {
-        if (pci_ids[i].vendor_id == vendor && pci_ids[i].device_id == device)
-            return pci_ids[i].device_name;
+static const char* pci_lookup_device(uint16_t vid, uint16_t did) {
+    for (int i = 0; pci_known_ids[i].vendor; ++i) {
+        if (pci_known_ids[i].vendor == vid && pci_known_ids[i].device == did)
+            return pci_known_ids[i].device_name;
     }
     return "Unknown Device";
 }
 
-/*
- * Initialize PCI configuration space using ACPI's MCFG table.
- * This function retrieves the base address for memory-mapped PCI configuration space.
- */
-static void init_pci_config_space(void) {
-    mcfg_base = acpi_get_mcfg_base();
-    if (mcfg_base) {
-        kprintf("MCFG base found: 0x%llx\n", mcfg_base);
-        // In a complete implementation, you would parse the MCFG table here
-        // to determine the valid bus range.
+// Initialize PCI config access (use ACPI MCFG if present)
+static void pci_config_space_init(void) {
+    pci_mcfg_base = acpi_get_mcfg_base();
+//    pci_mcfg_base = pci_mcfg_base + 0x2C;
+    pci_mcfg_base = *(uint64_t *)(pci_mcfg_base + 0x2C); // Read the actual PCIe base address
+
+    if (pci_mcfg_base) {
+        kprintf("PCI: Using PCIe MMCONFIG at 0x%llx\n", pci_mcfg_base);
     } else {
-        kprintf("No MCFG base found, using legacy I/O ports.\n");
+        kprintf("PCI: Using legacy I/O config (0xCF8/0xCFC)\n");
     }
 }
 
-/*
- * PCI configuration read: reads 32 bits from the configuration space.
- */
+// Read a 32-bit value from PCI config space
 uint32_t pci_config_read(uint16_t bus, uint16_t slot, uint16_t func, uint8_t offset) {
-    if (mcfg_base) {
-        uint64_t address = mcfg_base 
-            + ((uint64_t)bus   << 20)  // 1MB per bus.
-            + ((uint64_t)slot  << 15)  // 32KB per slot.
-            + ((uint64_t)func  << 12)  // 4KB per function.
-            + offset;
-        return *(volatile uint32_t*)address;
+    if (pci_mcfg_base) {
+        uint64_t addr = pci_mcfg_base 
+                      + ((uint64_t)bus << 20) 
+                      + ((uint64_t)slot << 15) 
+                      + ((uint64_t)func << 12) 
+                      + (offset & 0xFFF);
+        return *(volatile uint32_t*)addr;
     } else {
-        uint32_t address = (0x80000000)
-            | ((uint32_t)bus   << 16)
-            | ((uint32_t)slot  << 11)
-            | ((uint32_t)func  << 8)
-            | (offset & 0xFC);
+        uint32_t address = 0x80000000 
+                         | ((uint32_t)bus << 16) 
+                         | ((uint32_t)slot << 11) 
+                         | ((uint32_t)func << 8) 
+                         | (offset & 0xFC);
         outdw(PCI_CONFIG_ADDRESS, address);
         return indw(PCI_CONFIG_DATA);
     }
 }
 
-/*
- * PCI configuration write: writes 32 bits into the configuration space.
- */
-void pci_config_write(uint16_t bus, uint16_t slot, uint16_t func, uint8_t offset, uint32_t data) {
-    if (mcfg_base) {
-        uint64_t address = mcfg_base 
-            + ((uint64_t)bus   << 20)
-            + ((uint64_t)slot  << 15)
-            + ((uint64_t)func  << 12)
-            + offset;
-        *(volatile uint32_t*)address = data;
+// Write a 32-bit value to PCI config space
+void pci_config_write(uint16_t bus, uint16_t slot, uint16_t func, uint8_t offset, uint32_t value) {
+    if (pci_mcfg_base) {
+        uint64_t addr = pci_mcfg_base 
+                      + ((uint64_t)bus << 20) 
+                      + ((uint64_t)slot << 15) 
+                      + ((uint64_t)func << 12) 
+                      + (offset & 0xFFF);
+        *(volatile uint32_t*)addr = value;
     } else {
-        uint32_t address = (0x80000000)
-            | ((uint32_t)bus   << 16)
-            | ((uint32_t)slot  << 11)
-            | ((uint32_t)func  << 8)
-            | (offset & 0xFC);
+        uint32_t address = 0x80000000 
+                         | ((uint32_t)bus << 16) 
+                         | ((uint32_t)slot << 11) 
+                         | ((uint32_t)func << 8) 
+                         | (offset & 0xFC);
         outdw(PCI_CONFIG_ADDRESS, address);
-        outdw(PCI_CONFIG_DATA, data);
+        outdw(PCI_CONFIG_DATA, value);
     }
 }
 
-/*
- * Helper: Check if the vendor value is valid.
- * A vendor value of 0xFFFF indicates no device.
- */
-static int is_valid_device(uint16_t vendor) {
-    return (vendor != 0xFFFF);
+// Check if a PCI device is present (vendor ID != 0xFFFF)
+static inline int pci_device_exists(uint16_t vendor_id) {
+    return (vendor_id != 0xFFFF);
 }
 
-/*
- * Helper: Determine if a device is a PCI-to-PCI bridge.
- */
-static int is_pci_bridge(uint16_t bus, uint16_t slot, uint16_t func) {
-    uint32_t class_reg = pci_config_read(bus, slot, func, 8);
-    uint8_t class_code = (class_reg >> 24) & 0xFF;
-    uint8_t subclass   = (class_reg >> 16) & 0xFF;
-    return (class_code == PCI_CLASS_BRIDGE && subclass == PCI_SUBCLASS_PCI_BRIDGE);
+// Determine if a PCI function is a bridge (to scan subordinate bus)
+static int pci_is_bridge(uint16_t bus, uint16_t slot, uint16_t func) {
+    uint32_t class_val = pci_config_read(bus, slot, func, 0x08);
+    uint8_t base_class = (class_val >> 24) & 0xFF;
+    uint8_t sub_class  = (class_val >> 16) & 0xFF;
+    return (base_class == 0x06 && sub_class == 0x04);
 }
 
-/*
- * Probe a single function on a given bus and slot.
- * Validates the data read from PCI config space before populating the devices array.
- */
+// Probe a single PCI function and record it
 static void pci_probe_function(uint16_t bus, uint16_t slot, uint16_t func) {
-    uint32_t data = pci_config_read(bus, slot, func, 0);
-    uint16_t vendor = data & 0xFFFF;
-    if (!is_valid_device(vendor))
-        return; // No valid device here.
-    
-    if (device_count >= PCI_MAX_DEVICES) {
-        kprintf("PCI device array full, skipping device at Bus %d, Slot %d, Func %d\n", bus, slot, func);
-        return;
+    uint32_t id_reg = pci_config_read(bus, slot, func, 0x00);
+    uint16_t vendor_id = id_reg & 0xFFFF;
+    if (!pci_device_exists(vendor_id)) return;
+    if (pci_device_count >= PCI_MAX_DEVICES) {
+        panic("PCI: device list overflow");
     }
-    
-    pci_device_t *dev = &devices[device_count++];
-    dev->bus = bus;
-    dev->slot = slot;
-    dev->function = func;
-    dev->vendor_id = vendor;
-    dev->device_id = (data >> 16) & 0xFFFF;
-    
-    uint32_t class_reg = pci_config_read(bus, slot, func, 8);
+    // Populate device structure
+    pci_device_t *dev = &pci_devices[pci_device_count++];
+    dev->bus = bus; dev->slot = slot; dev->function = func;
+    dev->vendor_id = vendor_id;
+    dev->device_id = (id_reg >> 16) & 0xFFFF;
+    uint32_t class_reg = pci_config_read(bus, slot, func, 0x08);
     dev->class_code = (class_reg >> 24) & 0xFF;
-    dev->subclass = (class_reg >> 16) & 0xFF;
-    dev->prog_if = (class_reg >> 8) & 0xFF;
-    dev->header_type = pci_config_read(bus, slot, func, 0x0C) & 0xFF;
-    
-    for (int i = 0; i < 6; i++) {
-        dev->bar[i] = pci_config_read(bus, slot, func, 0x10 + i * 4);
+    dev->subclass  = (class_reg >> 16) & 0xFF;
+    dev->prog_if   = (class_reg >> 8) & 0xFF;
+    uint32_t hdr_reg = pci_config_read(bus, slot, func, 0x0C);
+    dev->header_type = (hdr_reg >> 16) & 0xFF;
+    // Read Base Address Registers
+    for (int bar = 0; bar < 6; ++bar) {
+        dev->bar[bar] = pci_config_read(bus, slot, func, 0x10 + bar*4);
     }
-    
-    kprintf("PCI Device: Bus %d, Slot %d, Func %d, Vendor: %s (0x%x), Device: %s (0x%x), Class: 0x%x\n",
-           bus, slot, func, get_vendor_name(dev->vendor_id), dev->vendor_id,
-           get_device_name(dev->vendor_id, dev->device_id), dev->device_id,
-           dev->class_code);
+    // Enable memory/IO decoding and bus mastering for this device
+    uint32_t cmd_reg = pci_config_read(bus, slot, func, 0x04);
+    cmd_reg |= 0x0007;  // enable I/O space, memory space, and bus master
+    pci_config_write(bus, slot, func, 0x04, cmd_reg);
+    // Log the device
+    kprintf("PCI: [%02x:%02x.%x] %s (VID 0x%04x) - %s (DID 0x%04x), Class 0x%02x Subclass 0x%02x\n",
+            bus, slot, func,
+            pci_lookup_vendor(dev->vendor_id), dev->vendor_id,
+            pci_lookup_device(dev->vendor_id, dev->device_id), dev->device_id,
+            dev->class_code, dev->subclass);
 }
 
-/*
- * Recursively scan a given bus for devices.
- * Uses the standard method of scanning bus 0 and then following PCI-to-PCI bridges.
- */
-static void pci_scan_bus(uint16_t bus) {
-    for (uint16_t slot = 0; slot < PCI_MAX_SLOT; slot++) {
-        for (uint16_t func = 0; func < PCI_MAX_FUNC; func++) {
-            uint32_t data = pci_config_read(bus, slot, func, 0);
-            uint16_t vendor = data & 0xFFFF;
-            if (!is_valid_device(vendor)) {
-                // If function 0 is invalid, no need to check further functions for this slot.
-                if (func == 0)
-                    break;
-                else
-                    continue;
-            }
-            
+// Recursively scan all PCI buses reachable from a given bus
+static void pci_scan_bus(uint8_t bus) {
+    for (uint8_t slot = 0; slot < 32; ++slot) {
+        uint32_t id = pci_config_read(bus, slot, 0, 0x00);
+        uint16_t vendor = id & 0xFFFF;
+        if (!pci_device_exists(vendor)) continue;
+        // Determine function count
+        uint8_t header_type = (pci_config_read(bus, slot, 0, 0x0C) >> 16) & 0xFF;
+        int func_count = (header_type & 0x80) ? PCI_MAX_FUNCTIONS : 1;
+        for (uint8_t func = 0; func < func_count; ++func) {
+            uint32_t func_id = pci_config_read(bus, slot, func, 0x00);
+            uint16_t vend = func_id & 0xFFFF;
+            if (!pci_device_exists(vend)) continue;
             pci_probe_function(bus, slot, func);
-            
-            // If the device is a PCI-to-PCI bridge, scan its secondary bus.
-            if (is_pci_bridge(bus, slot, func)) {
-                uint32_t bus_numbers = pci_config_read(bus, slot, func, 0x18);
-                uint8_t secondary_bus = (bus_numbers >> 8) & 0xFF;
-                // Prevent infinite recursion: only scan if the secondary bus is greater than the current.
-                if (secondary_bus > bus) {
-                    kprintf("PCI Bridge at Bus %d, Slot %d, Func %d: Scanning secondary bus %d\n",
-                            bus, slot, func, secondary_bus);
+            // If this function is a PCI-PCI bridge, scan its secondary bus
+            if (pci_is_bridge(bus, slot, func)) {
+                uint32_t buses = pci_config_read(bus, slot, func, 0x18);
+                uint8_t secondary_bus = (buses >> 8) & 0xFF;
+                if (secondary_bus > bus && secondary_bus != 0) {
                     pci_scan_bus(secondary_bus);
                 }
-            }
-            
-            // For non-multi-function devices, no need to scan additional functions.
-            if (func == 0) {
-                uint8_t header_type = pci_config_read(bus, slot, 0, 0x0C) & 0xFF;
-                if (!(header_type & 0x80))
-                    break;
             }
         }
     }
 }
 
-/*
- * Print a summary of all discovered PCI devices.
- */
-void pci_print_devices(void) {
-    kprintf("----- PCI Scan Summary -----\n");
-    kprintf("Total PCI devices found: %d\n", device_count);
-    for (int i = 0; i < device_count; i++) {
-        pci_device_t *dev = &devices[i];
-        kprintf("Device %d: Bus %d, Slot %d, Func %d, Vendor: %s (0x%x), Device: %s (0x%x), Class: 0x%x\n",
-                i, dev->bus, dev->slot, dev->function,
-                get_vendor_name(dev->vendor_id), dev->vendor_id,
-                get_device_name(dev->vendor_id, dev->device_id), dev->device_id,
-                dev->class_code);
-    }
-    kprintf("-----------------------------\n");
-}
-
-/*
- * Public function to initiate a PCI scan.
- */
-void pci_scan(void) {
-    device_count = 0;
-    pci_scan_bus(0);
-}
-
-/*
- * Public initialization function for the PCI subsystem.
- * This function initializes the configuration space, scans the PCI buses,
- * and prints a summary of the discovered devices.
- */
+// Initialize the PCI subsystem (to be called at kernel startup)
 void pci_init(void) {
     kprintf("Initializing PCI subsystem...\n");
-    init_pci_config_space();
-    pci_scan();
-    pci_print_devices();
+    pci_device_count = 0;
+    pci_config_space_init();
+    pci_scan_bus(0);
+    kprintf("PCI: Found %d PCI device(s)\n", pci_device_count);
 }
 
-/*
- * Lookup function: Find a PCI device by vendor and device ID.
- */
-pci_device_t* pci_find_device(uint16_t vendor, uint16_t device) {
-    for (int i = 0; i < device_count; i++) {
-        if (devices[i].vendor_id == vendor && devices[i].device_id == device)
-            return &devices[i];
+// Finder function for drivers to locate a specific device
+pci_device_t* pci_find_device(uint16_t vendor_id, uint16_t device_id) {
+    for (int i = 0; i < pci_device_count; ++i) {
+        if (pci_devices[i].vendor_id == vendor_id && pci_devices[i].device_id == device_id) {
+            return &pci_devices[i];
+        }
     }
-    return 0;
+    return NULL;
+}
+
+// Returns the number of PCI devices discovered.
+int pci_get_device_count(void) {
+    return pci_device_count;
+}
+
+// Returns a pointer to the PCI device at the given index (or NULL if index is out of range).
+pci_device_t* pci_get_device(int index) {
+    if (index < 0 || index >= pci_device_count) {
+        return NULL;
+    }
+    return &pci_devices[index];
 }

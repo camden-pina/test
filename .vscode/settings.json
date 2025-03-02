@@ -26,6 +26,10 @@
         "tables.h": "c",
         "acpi.h": "c",
         "*.tcc": "c",
-        "pci.h": "c"
+        "pci.h": "c",
+        "ehci.h": "c",
+        "coroutine": "c",
+        "uhci_td.h": "c",
+        "uhci.h": "c"
     }
 }

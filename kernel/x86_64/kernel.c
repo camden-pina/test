@@ -92,6 +92,7 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	pci_init();
 	usb_init();
 	usb_keyboard_init();
+	usb_print_devices();
 
 	kprintf("Copyright (C) Ideal Technologies Inc.\n\r");
 
@@ -99,8 +100,6 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	str = "cat\0";
 	kprintf("%s", str);
 
-	laihost_sleep(5);
-	
 	while (1)
 	{
 		// usb_keyboard_poll();
