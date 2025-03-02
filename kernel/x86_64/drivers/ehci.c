@@ -131,6 +131,63 @@ cleanup:
     return ret;
 }
 
+#define EHCI_LEGACY_CONTROL    0xC0
+#define EHCI_LEGSUP_BIOSOWNED  (1 << 16)
+#define EHCI_LEGSUP_OSOWNED    (1 << 24)
+
+// Wait up to 500 ms for BIOS to clear its owned bit
+static void ehci_legacy_handoff(uint8_t bus, uint8_t slot, uint8_t func) {
+    // Read the 32-bit Legacy Support register
+    uint32_t val = pci_read32(bus, slot, func, EHCI_LEGACY_CONTROL);
+    kprintf("EHCI: Initial Legacy Support register = 0x%08x\n", val);
+
+    // Set the OS Owned bit
+    val |= EHCI_LEGSUP_OSOWNED;
+    pci_write32(bus, slot, func, EHCI_LEGACY_CONTROL, val);
+
+    // Wait for BIOS to release
+    bool bios_released = false;
+    uint64_t start_ms = get_time_ms();
+    while ((get_time_ms() - start_ms) < 500) {  // 500 ms
+        uint32_t tmp = pci_read32(bus, slot, func, EHCI_LEGACY_CONTROL);
+        // If BIOS Owned bit is cleared, we're good
+        if ((tmp & EHCI_LEGSUP_BIOSOWNED) == 0) {
+            bios_released = true;
+            break;
+        }
+        yield();
+    }
+
+    if (!bios_released) {
+        // Some BIOSes never release, so forcibly clear it if needed.
+        kprintf("EHCI: BIOS did not relinquish ownership; forcing...\n");
+        uint32_t force_val = pci_read32(bus, slot, func, EHCI_LEGACY_CONTROL);
+        force_val &= ~EHCI_LEGSUP_BIOSOWNED;  // Clear the BIOS-owned bit
+        force_val |= EHCI_LEGSUP_OSOWNED;     // Make sure OS-owned is still set
+        pci_write32(bus, slot, func, EHCI_LEGACY_CONTROL, force_val);
+    }
+
+    uint32_t final_val = pci_read32(bus, slot, func, EHCI_LEGACY_CONTROL);
+    kprintf("EHCI: Final Legacy Support register = 0x%08x\n", final_val);
+}
+
+#define PCI_COMMAND 0x04  // Offset of the PCI Command Register
+
+// same init for uhci
+static void enable_ehci_bus_mastering(uint8_t bus, uint8_t slot, uint8_t func) {
+    // Read current PCI Command register
+    uint16_t cmd = pci_read16(bus, slot, func, PCI_COMMAND);
+    
+    // Set the "Bus Master Enable" bit (bit 2)
+    cmd |= (1 << 2);
+    
+    // Write it back
+    pci_write16(bus, slot, func, PCI_COMMAND, cmd);
+
+    kprintf("UHCI: Enabled PCI bus mastering; cmd=0x%04x (bus=%u, slot=%u, func=%u)\n",
+            cmd, bus, slot, func);
+}
+
 /*
  * EHCI Controller Initialization (Enhanced)
  *
@@ -139,6 +196,20 @@ cleanup:
  * setting CONFIGFLAG, and then enumerating each root hub port.
  */
 int ehci_init_controller(pci_device_t *pci_dev, usb_host_controller_t *hc) {
+        /*
+     * 1) Perform the EHCI Legacy Handoff first.
+     *    This ensures the BIOS no longer “owns” the EHCI controller.
+     */
+    ehci_legacy_handoff(pci_dev->bus, pci_dev->slot, pci_dev->function);
+
+    /*
+     * 2) Enable Bus Mastering in PCI config space.
+     *    (We can reuse the same function name used for UHCI because it
+     *     simply sets the PCI COMMAND bus-master bit; “UHCI” in the name
+     *     is somewhat a misnomer if used for EHCI as well.)
+     */
+    enable_ehci_bus_mastering(pci_dev->bus, pci_dev->slot, pci_dev->function);
+
     /* Get EHCI MMIO base from BAR0 (using uintptr_t for 64-bit addresses) */
     uintptr_t base = pci_dev->bar[0] & ~0xF;
     if (!base)

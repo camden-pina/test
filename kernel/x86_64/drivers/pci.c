@@ -183,6 +183,63 @@ void pci_config_write(uint16_t bus, uint16_t slot, uint16_t func, uint8_t offset
     }
 }
 
+/**
+ * Read a 16-bit value from PCI configuration space.
+ *
+ * This simply calls the existing 32-bit read and extracts the correct half-word.
+ */
+uint16_t pci_read16(uint16_t bus, uint16_t slot, uint16_t function, uint8_t offset) {
+    // Force alignment to a 4-byte boundary (the offset must start at an even multiple of 4)
+    uint8_t aligned_offset = offset & 0xFC;
+
+    // Read the entire 32-bit value
+    uint32_t value = pci_config_read(bus, slot, function, aligned_offset);
+
+    // Depending on the offset’s lower 2 bits, we shift appropriately
+    // If offset ends with 0b00, we want bits [15..0]. If it ends with 0b10, we want bits [31..16].
+    int shift = (offset & 2) * 8;
+
+    return (uint16_t)((value >> shift) & 0xFFFF);
+}
+
+/**
+ * Write a 16-bit value to PCI configuration space.
+ *
+ * This reads the existing 32-bit value, updates the desired half-word, and writes back.
+ */
+void pci_write16(uint16_t bus, uint16_t slot, uint16_t function, uint8_t offset, uint16_t data) {
+    uint8_t aligned_offset = offset & 0xFC;
+    uint32_t oldval = pci_config_read(bus, slot, function, aligned_offset);
+
+    // Shift determines which half of the 32 bits we’re changing
+    int shift = (offset & 2) * 8;
+
+    // Mask out the old 16 bits
+    uint32_t mask = 0xFFFF << shift;
+    uint32_t newval = (oldval & ~mask) | ((data & 0xFFFF) << shift);
+
+    pci_config_write(bus, slot, function, aligned_offset, newval);
+}
+
+/**
+ * Read a 32-bit value from PCI configuration space.
+ *
+ * This is just a direct pass-through to pci_config_read.
+ */
+uint32_t pci_read32(uint16_t bus, uint16_t slot, uint16_t function, uint8_t offset) {
+    // We trust offset is suitably aligned. If needed, we could do offset &= 0xFC here.
+    return pci_config_read(bus, slot, function, offset);
+}
+
+/**
+ * Write a 32-bit value to PCI configuration space.
+ *
+ * This is just a direct pass-through to pci_config_write.
+ */
+void pci_write32(uint16_t bus, uint16_t slot, uint16_t function, uint8_t offset, uint32_t data) {
+    pci_config_write(bus, slot, function, offset, data);
+}
+
 // Check if a PCI device is present (vendor ID != 0xFFFF)
 static inline int pci_device_exists(uint16_t vendor_id) {
     return (vendor_id != 0xFFFF);

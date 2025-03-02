@@ -27,11 +27,29 @@ void* usb_alloc_page(void) {
     return page;
 }
 
+#define PCI_COMMAND 0x04  // Offset of the PCI Command Register
+
+// same init for uhci
+static void enable_uhci_bus_mastering(uint8_t bus, uint8_t slot, uint8_t func) {
+    // Read current PCI Command register
+    uint16_t cmd = pci_read16(bus, slot, func, PCI_COMMAND);
+    
+    // Set the "Bus Master Enable" bit (bit 2)
+    cmd |= (1 << 2);
+    
+    // Write it back
+    pci_write16(bus, slot, func, PCI_COMMAND, cmd);
+
+    kprintf("UHCI: Enabled PCI bus mastering; cmd=0x%04x (bus=%u, slot=%u, func=%u)\n",
+            cmd, bus, slot, func);
+}
+
 /*
  * Initialize a UHCI host controller.
  */
 static int init_uhci_controller(pci_device_t *pci_dev)
 {
+    enable_uhci_bus_mastering(pci_dev->bus, pci_dev->slot, pci_dev->function);
     // Example: use bar[4] as the I/O base for UHCI. 
     // Might differ depending on hardware.
     uint32_t io_base = pci_dev->bar[4] & ~0xF;

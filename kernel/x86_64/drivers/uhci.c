@@ -145,7 +145,6 @@ void uhci_interrupt_handler_main(uint64_t vector, uint32_t error) {
     apic_send_eoi_if_necessary((uint8_t)vector);
 }
 
-
 /*
  * UHCI Control Transfer Implementation (Interrupt-Driven)
  *
@@ -174,7 +173,7 @@ int uhci_control_transfer(usb_host_controller_t *hc, uint8_t device_address,
     status_td->done = 0;
 
     // Allocate buffer for Setup stage (8 bytes) and copy the setup packet.
-    void *setup_buffer = kmalloca(8, 4);
+    void *setup_buffer = kmalloca(8, 8);
     memcpy(setup_buffer, setup, sizeof(usb_setup_packet_t));
 
     // Fill in the Setup TD (for control transfers, SETUP PID would be used).
@@ -196,6 +195,14 @@ int uhci_control_transfer(usb_host_controller_t *hc, uint8_t device_address,
     status_td->token = (0 << 16) | UHCI_TD_ACTIVE;
     status_td->link = 0x00000001;
     status_td->buffer = 0;
+
+        // Print your addresses
+        kprintf("UHCI: Setup TD buffer => phys=0x%08x\n", setup_td->buffer);
+        if (data_td) {
+            kprintf("UHCI: Data TD buffer => phys=0x%08x\n", data_td->buffer);
+        }
+        kprintf("UHCI: Status TD buffer => phys=0x%08x\n", status_td->buffer);
+
 
     // Link the TDs: Setup -> (Data if present) -> Status.
     if (data_td) {
