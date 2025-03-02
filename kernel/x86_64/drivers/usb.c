@@ -18,12 +18,7 @@ static int usb_hc_count = 0;
 
 /* Global array for UHCI controllers (for interrupt handling) */
 #define MAX_UHCI_CONTROLLERS 8
-usb_host_controller_t uhci_controllers[MAX_UHCI_CONTROLLERS];
-int num_uhci_controllers = 0;
 
-/*
- * Allocate a 4KB-aligned page.
- */
 void* usb_alloc_page(void) {
     void *page = kmalloca(4096, 4096);
     if (!page)
@@ -35,35 +30,43 @@ void* usb_alloc_page(void) {
 /*
  * Initialize a UHCI host controller.
  */
-static int init_uhci_controller(pci_device_t *pci_dev) {
+static int init_uhci_controller(pci_device_t *pci_dev)
+{
+    // Example: use bar[4] as the I/O base for UHCI. 
+    // Might differ depending on hardware.
     uint32_t io_base = pci_dev->bar[4] & ~0xF;
     if (io_base == 0)
         return -1;
 
+    // Grab next available generic USB controller struct
     usb_host_controller_t *hc = &usb_controllers[usb_hc_count++];
-    hc->type = USB_HC_UHCI;
+    memset(hc, 0, sizeof(*hc));
+
+    hc->type    = USB_HC_UHCI;
     hc->pci_dev = pci_dev;
     hc->io_base = io_base;
 
+    // Basic UHCI init
     hc->uhci.frame_list = usb_alloc_page();
     for (int i = 0; i < 1024; i++)
         hc->uhci.frame_list[i] = 0x00000001;
 
     hc->uhci.control_qh = kmalloca(sizeof(uhci_qh), 16);
-    hc->uhci.control_qh->head = 0x00000001;
+    hc->uhci.control_qh->head    = 0x00000001;
     hc->uhci.control_qh->element = 0x00000001;
 
     hc->uhci.frame_list[0] = (uint32_t)(uintptr_t)hc->uhci.control_qh | 0x2;
 
+    // Reset then run the controller
     outw(io_base + 0x00, 0x0004);
     for (volatile int d = 0; d < 10000; d++);
     outw(io_base + 0x00, 0x0000);
 
     outdw(io_base + 0x08, (uint32_t)(uintptr_t)hc->uhci.frame_list);
     outw(io_base + 0x06, 0x0000);
-
     outw(io_base + 0x00, 0x0041);
 
+    // Count how many ports actually exist
     uint8_t ports = 0;
     for (uint8_t p = 0; p < 8; p++) {
         if (inw(io_base + 0x10 + 2 * p) == 0xFFFF)
@@ -75,24 +78,35 @@ static int init_uhci_controller(pci_device_t *pci_dev) {
     kprintf("USB: Initialized UHCI controller on bus %d slot %d with %d ports\n",
             pci_dev->bus, pci_dev->slot, ports);
 
-    // Register UHCI interrupt for this controller.
-    uhci_register_interrupt(pci_dev);
-    // Add this controller to the UHCI global array.
-    if (num_uhci_controllers < MAX_UHCI_CONTROLLERS) {
-        uhci_controllers[num_uhci_controllers++] = *hc;
-    } else {
+    /* 
+     * Now register it as a "UHCI controller" so we can track IRQ, etc.
+     * We'll fill one entry in uhci_controllers[] (from uhci.c).
+     */
+    if (num_uhci_controllers >= MAX_UHCI_CONTROLLERS) {
         kprintf("UHCI: Too many UHCI controllers!\n");
+        return 0; // we still say "initialized" but won't register IRQ
     }
-    
+    uhci_controller_t *uc = &uhci_controllers[num_uhci_controllers++];
+    memset(uc, 0, sizeof(*uc));
+    uc->hc  = hc;                // point to our usb_host_controller_t
+    uc->irq = pci_dev->irq;      // read from PCI device
+    uhci_register_interrupt(uc); // properly map IRQ & set up IDT
+
+    // Check if anything is already plugged in
     for (uint8_t p = 0; p < ports; p++) {
         uint16_t port_status = inw(io_base + 0x10 + 2 * p);
         if (port_status & 0x1) {
+            // Do a port reset
             outw(io_base + 0x10 + 2 * p, port_status | (1 << 9));
             for (volatile int d = 0; d < 10000; d++);
             outw(io_base + 0x10 + 2 * p, port_status & ~(1 << 9));
             for (volatile int d = 0; d < 5000; d++);
-            outw(io_base + 0x10 + 2 * p, inw(io_base + 0x10 + 2 * p) | (1 << 2));
+            // Enable port
+            outw(io_base + 0x10 + 2 * p,
+                 inw(io_base + 0x10 + 2 * p) | (1 << 2));
             uint8_t low_speed = (inw(io_base + 0x10 + 2 * p) & (1 << 8)) ? 1 : 0;
+
+            // Kick off enumeration
             usb_process_device_connect(hc, p, low_speed);
         }
     }
@@ -101,7 +115,6 @@ static int init_uhci_controller(pci_device_t *pci_dev) {
 
 /* Stub functions for OHCI, EHCI, xHCI */
 static int init_ohci_controller(pci_device_t *pci_dev) { return -1; }
-static int init_ehci_controller(pci_device_t *pci_dev) { return -1; }
 static int init_xhci_controller(pci_device_t *pci_dev) { return -1; }
 
 /*
@@ -243,32 +256,36 @@ void usb_process_device_connect(usb_host_controller_t *hc, uint8_t port, uint8_t
             (hc->type == USB_HC_EHCI) ? "EHCI" : (hc->type == USB_HC_UHCI) ? "UHCI" : "Other");
 }
 
-/*
+ /*
  * Initialize the USB subsystem by scanning PCI devices for USB host controllers.
  */
 void usb_init(void) {
     kprintf("Initializing USB subsystem...\n");
     usb_device_count = 0;
-    usb_hc_count = 0;
-    int found = 0;
+    usb_hc_count     = 0;
+    int found        = 0;
 
     for (int i = 0; i < pci_get_device_count(); i++) {
         pci_device_t *dev = pci_get_device(i);
         if (dev->class_code == 0x0C && dev->subclass == 0x03) {
             uint8_t interface = dev->prog_if;
             int res = -1;
-            kprintf("INTERFACE [%llu]\n", interface);
+            kprintf("INTERFACE [%u]\n", interface);
+
             if (interface == 0x00) {
-                uhci_register_interrupt(dev);
+                // Remove the old: uhci_register_interrupt(dev);
+                // Instead just call our UHCI init:
                 res = init_uhci_controller(dev);
-            }
-            else if (interface == 0x10) {
+            } else if (interface == 0x10) {
                 res = init_ohci_controller(dev);
-            }
-            else if (interface == 0x20)
+            } else if (interface == 0x20) {
+                // Example calls a custom "ehci_init_controller()", or define:
+                // res = init_ehci_controller(dev);
+                // If you do have ehci_init_controller(dev, &usb_controllers[usb_hc_count]) then do that
                 res = ehci_init_controller(dev, &usb_controllers[usb_hc_count]);
-            else if (interface == 0x30)
+            } else if (interface == 0x30) {
                 res = init_xhci_controller(dev);
+            }
             if (res == 0)
                 found++;
         }

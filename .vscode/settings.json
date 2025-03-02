@@ -30,6 +30,9 @@
         "ehci.h": "c",
         "coroutine": "c",
         "uhci_td.h": "c",
-        "uhci.h": "c"
+        "uhci.h": "c",
+        "idt.h": "c",
+        "isr.h": "c",
+        "usb.h": "c"
     }
 }

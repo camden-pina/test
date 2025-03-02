@@ -2,22 +2,33 @@
 #define UHCI_H
 
 #include <stdint.h>
-#include "usb.h"      // Must define usb_host_controller_t, usb_setup_packet_t, etc.
-#include "uhci_td.h"  // UHCI TD definitions
+#include <stdbool.h>
+#include <drivers/usb.h>     // usb_host_controller_t, usb_setup_packet_t, etc.
+#include <drivers/uhci_td.h> // UHCI TD definitions
 
-/* Prototype for the UHCI control transfer function */
-int uhci_control_transfer(usb_host_controller_t *hc, uint8_t device_address,
-                          usb_setup_packet_t *setup, void *buffer, int length);
+/**
+ * Represents a single UHCI controller in your system.
+ * Instead of embedding usb_host_controller_t, just point to one.
+ */
+typedef struct uhci_controller {
+    usb_host_controller_t *hc;  // points to the generic USB controller struct
+    uint8_t                irq; 
+    bool                   irq_registered;
+} uhci_controller_t;
 
-/* Function to register the UHCI interrupt (maps IRQ to vector) */
-void uhci_register_interrupt(pci_device_t *pci_dev);
+/* Maximum # of UHCI controllers */
+#define MAX_UHCI_CONTROLLERS 8
 
-/* UHCI-specific interrupt handler main (called from the assembly wrapper) */
+/* A global array of them (defined in uhci.c) */
+extern uhci_controller_t uhci_controllers[MAX_UHCI_CONTROLLERS];
+extern int               num_uhci_controllers;
+
+/* Functions */
+void uhci_register_interrupt(uhci_controller_t *controller);
 void uhci_interrupt_handler_main(uint64_t vector, uint32_t error);
 
-/* Global array to hold UHCI controllers for interrupt processing */
-#define MAX_UHCI_CONTROLLERS 8
-extern usb_host_controller_t uhci_controllers[MAX_UHCI_CONTROLLERS];
-extern int num_uhci_controllers;
+/* UHCI control transfer */
+int uhci_control_transfer(usb_host_controller_t *hc, uint8_t device_address,
+                          usb_setup_packet_t *setup, void *buffer, int length);
 
 #endif // UHCI_H

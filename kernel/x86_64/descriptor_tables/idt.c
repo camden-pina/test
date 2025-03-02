@@ -100,6 +100,47 @@
 	 entry->zero        = 0;
  }
  
+ /*
+ * idt_set_gate() - Set an IDT entry for a particular interrupt gate.
+ *
+ * This is a higher-level helper function that interprets 'flags' as a
+ * combination of present-bit, DPL (ring level), and gate type bits,
+ * then calls idt_set_entry() to fill in the correct fields.
+ *
+ * Parameters:
+ *   vector  - Interrupt vector (0 to 255).
+ *   base    - The base address of the ISR or interrupt handler function.
+ *   sel     - Code segment selector (commonly KERNEL_CS).
+ *   flags   - A byte containing various flag bits:
+ *             - 0x80 (IDT_FLAG_PRESENT) sets the Present bit
+ *             - 0x60 (IDT_FLAG_RING3) sets DPL = 3 (user)
+ *             - 0x00 (IDT_FLAG_RING0) sets DPL = 0 (kernel)
+ *             - 0x0E (IDT_FLAG_INTERRUPT_GATE) or 0x0F (IDT_FLAG_TRAP_GATE) for the gate type
+ *
+ * Example usage:
+ *   idt_set_gate(0x50, (uint64_t)my_handler, KERNEL_CS,
+ *                IDT_FLAG_PRESENT | IDT_FLAG_RING0 | IDT_FLAG_INTERRUPT_GATE);
+ */
+void idt_set_gate(uint8_t vector, uint64_t base, uint16_t sel, uint8_t flags)
+{
+    // Extract bits for "present" (bit 7)
+    uint8_t present = (flags & 0x80) ? 1 : 0;
+
+    // Extract DPL from bits 5 and 6 (if they’re used for ring level).
+    // This typically corresponds to 0x00 = ring0, or 0x60 = ring3, etc.
+    uint8_t dpl = (flags >> 5) & 0x03;
+
+    // Gate type is the low 4 bits (0xE = interrupt gate, 0xF = trap gate)
+    // Often you see 0xE combined with 0x80 for a typical 64-bit interrupt gate: 0x8E.
+    uint8_t type = (flags & 0x0F);
+
+    // IST index if needed, or zero if you’re not using IST for this vector
+    uint8_t ist_index = 0;
+
+    // Call the lower-level function that actually populates the gate_descriptor_t
+    idt_set_entry(vector, base, sel, ist_index, type, dpl, present);
+}
+
  // -----------------------------------------------------------------------------
  // External ISR Stubs
  // -----------------------------------------------------------------------------

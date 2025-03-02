@@ -1,7 +1,7 @@
 [2J[01;01H[=3h[2J[01;01H[0m[35m[40m[0m[37m[40mBdsDxe: failed to load Boot0001 "UEFI QEMU DVD-ROM QM00005 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x2,0xFFFF,0x0): Not Found
 BdsDxe: loading Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)
 BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)
-[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,1C5C579F-6463-463B-99D8-67D77EFF7ABF,0x800,0x187DF)
+[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,C6398EE5-735D-4F52-8AD7-64D6DBF59395,0x800,0x187DF)
 [Loader] INFO:     Listing directory:
   EFI
   ModernOS
@@ -10,12 +10,12 @@ BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x
 [Loader] WARN:     No config file found
 [Loader] INFO:     Loading kernel
 [Loader] INFO:       phys addr: 0x100000
-[Loader] INFO:       image size: 279952
-[Loader] INFO:       kernel entry: 0xFFFF80000012983C
+[Loader] INFO:       image size: 280072
+[Loader] INFO:       kernel entry: 0xFFFF800000129A4B
 [Loader] INFO:       memory size: 274432
 [Loader] INFO:     Loading executable data segment
 [Loader] INFO:       base: 0xFFFF800000100000
-[Loader] INFO:       size: 0x427D4 (67 pages)
+[Loader] INFO:       size: 0x426C4 (67 pages)
 [Loader] WARN:     No .load_sections section found
 [Loader] INFO:     Found .boot_data section
 [Loader] INFO:     Looking for boot info symbol
@@ -23,8 +23,8 @@ BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x
 [Loader] INFO:     Kernel loaded
 [Loader] INFO:     Done
 [Loader] INFO:     Exiting UEFI...
-Initializing PMM with memory map size: 624 bytes
-Total memory map entries: 26
+Initializing PMM with memory map size: 672 bytes
+Total memory map entries: 28
 Entry 0: Start=0, Type=3
   [0x0-0x1000] reserved (4096)
 Entry 1: Start=0x1000, Type=2
@@ -44,38 +44,42 @@ Entry 7: Start=0x1500000, Type=2
 Entry 8: Start=0x7bf36000, Type=3
   [0x7bf36000-0x7bf56000] reserved (131072)
 Entry 9: Start=0x7bf56000, Type=2
-  [0x7bf56000-0x7c27d000] usable (3305472)
-Entry 10: Start=0x7c27d000, Type=8
-  [0x7c27d000-0x7e27d000] EFI runtime data (33554432)
-Entry 11: Start=0x7e27d000, Type=2
-  [0x7e27d000-0x7e28b000] usable (57344)
-Entry 12: Start=0x7e28b000, Type=3
-  [0x7e28b000-0x7f034000] reserved (14323712)
-Entry 13: Start=0x7f034000, Type=8
+  [0x7bf56000-0x7c278000] usable (3284992)
+Entry 10: Start=0x7c278000, Type=8
+  [0x7c278000-0x7e278000] EFI runtime data (33554432)
+Entry 11: Start=0x7e278000, Type=2
+  [0x7e278000-0x7e288000] usable (65536)
+Entry 12: Start=0x7e288000, Type=3
+  [0x7e288000-0x7e4c5000] reserved (2347008)
+Entry 13: Start=0x7e4c5000, Type=2
+  [0x7e4c5000-0x7e4c8000] usable (12288)
+Entry 14: Start=0x7e4c8000, Type=3
+  [0x7e4c8000-0x7f034000] reserved (11976704)
+Entry 15: Start=0x7f034000, Type=8
   [0x7f034000-0x7f0be000] EFI runtime data (565248)
-Entry 14: Start=0x7f0be000, Type=3
+Entry 16: Start=0x7f0be000, Type=3
   [0x7f0be000-0x7f8ef000] reserved (8589312)
-Entry 15: Start=0x7f8ef000, Type=8
+Entry 17: Start=0x7f8ef000, Type=8
   [0x7f8ef000-0x7f9ef000] EFI runtime data (1048576)
-Entry 16: Start=0x7f9ef000, Type=7
+Entry 18: Start=0x7f9ef000, Type=7
   [0x7f9ef000-0x7faef000] EFI runtime code (1048576)
-Entry 17: Start=0x7faef000, Type=3
+Entry 19: Start=0x7faef000, Type=3
   [0x7faef000-0x7fb6f000] reserved (524288)
-Entry 18: Start=0x7fb6f000, Type=4
+Entry 20: Start=0x7fb6f000, Type=4
   [0x7fb6f000-0x7fb7f000] ACPI data (65536)
-Entry 19: Start=0x7fb7f000, Type=5
+Entry 21: Start=0x7fb7f000, Type=5
   [0x7fb7f000-0x7fbff000] ACPI NVS (524288)
-Entry 20: Start=0x7fbff000, Type=3
+Entry 22: Start=0x7fbff000, Type=3
   [0x7fbff000-0x7fe00000] reserved (2101248)
-Entry 21: Start=0x7fe00000, Type=2
+Entry 23: Start=0x7fe00000, Type=2
   [0x7fe00000-0x7fe9e000] usable (647168)
-Entry 22: Start=0x7fe9e000, Type=3
+Entry 24: Start=0x7fe9e000, Type=3
   [0x7fe9e000-0x7fef4000] reserved (352256)
-Entry 23: Start=0x7fef4000, Type=8
+Entry 25: Start=0x7fef4000, Type=8
   [0x7fef4000-0x7ff78000] EFI runtime data (540672)
-Entry 24: Start=0x7ff78000, Type=5
+Entry 26: Start=0x7ff78000, Type=5
   [0x7ff78000-0x80000000] ACPI NVS (557056)
-Entry 25: Start=0xb0000000, Type=3
+Entry 27: Start=0xb0000000, Type=3
   [0xb0000000-0xc0000000] reserved (268435456)
 total memory: 2303 GB
 usable memory: 1973 GB
@@ -116,12 +120,10 @@ PCI: [00:1f.3] Intel (VID 0x8086) - 82801I (ICH9 Family) SMBus Controller (DID 0
 PCI: Found 10 PCI device(s)
 Initializing USB subsystem...
 INTERFACE [0]
-UHCI: Invalid IRQ (0) reported; defaulting to IRQ 11
-UHCI: Using default IRQ 11
-IOAPIC: Mapping IRQ 11 -> IDT vector 80
-UHCI: Mapped IRQ 11 to IDT vector 0x50
 USB: Initialized UHCI controller on bus 0 slot 29 with 8 ports
-UHCI: IRQ already registered, skipping registration.
+UHCI: Invalid IRQ (0) reported; defaulting to IRQ 11.
+IOAPIC: Mapping IRQ 11 -> IDT vector 80
+UHCI: Mapped hardware IRQ 11 to IDT vector 0x50
 USB: Device connected on controller UHCI port 0 (low_speed=0), assigned address 1
 UHCI: TD timeout, token = 0x80080000
 UHCI: Setup stage failed
@@ -155,9 +157,8 @@ UHCI: TD timeout, token = 0x80080000
 UHCI: Setup stage failed
 USB: Failed to get short device descriptor (port 7)
 INTERFACE [0]
-UHCI: IRQ already registered, skipping registration.
 USB: Initialized UHCI controller on bus 0 slot 29 with 8 ports
-UHCI: IRQ already registered, skipping registration.
+UHCI: Invalid IRQ (0) reported; defaulting to IRQ 11.
 USB: Device connected on controller UHCI port 2 (low_speed=1), assigned address 9
 UHCI: TD timeout, token = 0x80080000
 UHCI: Setup stage failed
@@ -183,9 +184,8 @@ UHCI: TD timeout, token = 0x80080000
 UHCI: Setup stage failed
 USB: Failed to get short device descriptor (port 7)
 INTERFACE [0]
-UHCI: IRQ already registered, skipping registration.
 USB: Initialized UHCI controller on bus 0 slot 29 with 8 ports
-UHCI: IRQ already registered, skipping registration.
+UHCI: Invalid IRQ (0) reported; defaulting to IRQ 11.
 USB: Device connected on controller UHCI port 2 (low_speed=1), assigned address 15
 UHCI: TD timeout, token = 0x80080000
 UHCI: Setup stage failed

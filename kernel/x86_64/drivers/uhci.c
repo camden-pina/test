@@ -6,6 +6,8 @@
 #include <mm/pmm.h>
 #include <string.h>
 #include <interrupts/ioapic.h>
+#include <interrupts/lapic.h>
+#include <descriptor_tables/idt.h>
 
 /* Assume these kernel functions are provided */
 extern uint32_t get_time_ms(void);  // Returns current time in milliseconds
@@ -19,38 +21,55 @@ extern void yield(void);            // Yields CPU so that interrupts can run
  */
 #define UHCI_TD_ACTIVE   (1u << 31)
 
-/*
- * Register UHCI interrupt by checking the IRQ reported by the device
- * and mapping it to an IDT vector using the I/O APIC.
- */
-void uhci_register_interrupt(pci_device_t *pci_dev) {
-    static int uhci_irq_registered = 0;
-    if (uhci_irq_registered) {
-        kprintf("UHCI: IRQ already registered, skipping registration.\n");
+// Define the global array here
+uhci_controller_t uhci_controllers[MAX_UHCI_CONTROLLERS];
+int               num_uhci_controllers = 0;
+
+/* Keep track of which IRQ -> vector we’ve assigned */
+typedef struct {
+    uint8_t irq;
+    uint8_t vector;
+} irq_vector_map_t;
+static irq_vector_map_t used_irq_map[16];
+static int              used_irq_count = 0;
+
+static uint8_t next_uhci_vector = 0x50;
+
+#define IDT_FLAG_PRESENT  0x80
+#define IDT_FLAG_RING0    0x00
+
+static uint8_t find_or_create_vector_for_irq(uint8_t irq) {
+    // Check if we already have a vector for this irq
+    for (int i = 0; i < used_irq_count; i++) {
+        if (used_irq_map[i].irq == irq)
+            return used_irq_map[i].vector;
+    }
+    // Otherwise, create a new mapping
+    uint8_t vector = next_uhci_vector++;
+    used_irq_map[used_irq_count].irq    = irq;
+    used_irq_map[used_irq_count].vector = vector;
+    used_irq_count++;
+
+    ioapic_map_irq(irq, vector);
+    idt_set_gate(vector, (uint64_t)uhci_interrupt_handler_main, 0x08,
+                 IDT_FLAG_PRESENT | IDT_FLAG_RING0);
+    kprintf("UHCI: Mapped hardware IRQ %d to IDT vector 0x%02x\n", irq, vector);
+    return vector;
+}
+
+void uhci_register_interrupt(uhci_controller_t *controller) {
+    if (controller->irq_registered) {
+        kprintf("UHCI: IRQ already registered for this controller, skipping.\n");
         return;
     }
-
-    // Retrieve IRQ from the PCI device structure.
-    uint8_t irq = pci_dev->irq;
-    
-    // Validate the IRQ. Some systems might report 0xFF or 0 for an unconfigured IRQ.
-    if (irq == 0xFF || irq == 0) {
-        kprintf("UHCI: Invalid IRQ (%d) reported; defaulting to IRQ 11\n", irq);
-        irq = 11;
+    // If device reported 0x00 or 0xFF, default to 11
+    if (controller->irq == 0x00 || controller->irq == 0xFF) {
+        kprintf("UHCI: Invalid IRQ (%d) reported; defaulting to IRQ 11.\n",
+                controller->irq);
+        controller->irq = 11;
     }
-    
-    // For legacy UHCI, IRQ 11 is common, but if the hardware reports a different IRQ, log it.
-    if (irq != 11) {
-        kprintf("UHCI: Expected IRQ 11 but device reports IRQ %d; using IRQ %d\n", irq, irq);
-    } else {
-        kprintf("UHCI: Using default IRQ %d\n", irq);
-    }
-    
-    // Map the IRQ to an IDT vector. Here, we choose vector 0x50.
-    ioapic_map_irq(irq, 0x50);
-    kprintf("UHCI: Mapped IRQ %d to IDT vector 0x50\n", irq);
-
-    uhci_irq_registered = 1;
+    find_or_create_vector_for_irq(controller->irq);
+    controller->irq_registered = true;
 }
 
 /*
@@ -92,24 +111,40 @@ void uhci_interrupt_handler(usb_host_controller_t *hc) {
     }
 }
 
-/*
- * UHCI interrupt handler main function.
- * This function is called from the assembly ISR stub (uhci_isr_common_stub)
- * and should process UHCI interrupts.
- */
 void uhci_interrupt_handler_main(uint64_t vector, uint32_t error) {
-    kprintf("UHCI interrupt received: vector = %llu, error = 0x%08x\n", vector, error);
-    
-    // For each UHCI controller, call its handler.
-    extern usb_host_controller_t uhci_controllers[];
-    extern int num_uhci_controllers;
-    for (int i = 0; i < num_uhci_controllers; i++) {
-        uhci_interrupt_handler(&uhci_controllers[i]);
+    kprintf("UHCI interrupt: vector=0x%02llx error=0x%x\n", vector, error);
+
+    // Figure out which IRQ matches this vector
+    uint8_t triggered_irq = 0xFF;
+    for (int i = 0; i < used_irq_count; i++) {
+        if (used_irq_map[i].vector == (uint8_t)vector) {
+            triggered_irq = used_irq_map[i].irq;
+            break;
+        }
     }
-    
-    // Signal end-of-interrupt to the local APIC, if needed.
-    // For example: lapic_write(APIC_EOI, 0);
+    if (triggered_irq == 0xFF) {
+        kprintf("UHCI: Unknown vector 0x%02llx!\n", vector);
+        apic_send_eoi_if_necessary((uint8_t)vector);
+        return;
+    }
+
+    // Service all UHCI controllers that share this IRQ
+    for (int i = 0; i < num_uhci_controllers; i++) {
+        uhci_controller_t *uc = &uhci_controllers[i];
+        if (uc->irq_registered && (uc->irq == triggered_irq)) {
+            kprintf("UHCI: Handling interrupt for controller %d, IRQ %d\n", i, uc->irq);
+
+            // This is where you might call your actual UHCI code:
+            // uhci_interrupt_handler(uc->hc);
+
+            // If you want the “TD scanning” approach:
+            //   uhci_td *td = (uhci_td *)(uintptr_t)(uc->hc->uhci.control_qh->element);
+            //   ...
+        }
+    }
+    apic_send_eoi_if_necessary((uint8_t)vector);
 }
+
 
 /*
  * UHCI Control Transfer Implementation (Interrupt-Driven)
