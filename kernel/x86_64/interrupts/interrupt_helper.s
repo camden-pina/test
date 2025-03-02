@@ -26,8 +26,8 @@ isr_common_stub:
     # We load the two arguments for isr_common:
     #   Offset for vector: 120 bytes (saved regs) + 8 bytes = 128 bytes from %rsp
     #   Offset for error code: 120 bytes from %rsp
-    movq 128(%rsp), %rdi    # First argument: vector number
-    movl 120(%rsp), %esi    # Second argument: error code (32-bit)
+    movq 120(%rsp), %rdi    # First argument: vector number
+    movl 128(%rsp), %esi    # Second argument: error code (32-bit)
     call isr_common
 
     # Restore registers (in reverse order)

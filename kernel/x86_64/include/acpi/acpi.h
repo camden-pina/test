@@ -30,4 +30,6 @@ void* acpi_find_table(const char *sig, size_t index);
 // Utility checksum function (used internally)
 unsigned int acpi_checksum(void* ptr);
 
+uint64_t acpi_get_mcfg_base();
+
 #endif

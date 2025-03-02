@@ -91,7 +91,7 @@ OVMF := ./RELEASE$(shell echo $(ARCH) | tr '[:lower:]' '[:upper:]')_OVMF.fd
 run: 
 	@echo "==> Launching QEMU for $(ARCH)..."
 ifeq ($(ARCH),x86_64)
-	qemu-system-x86_64 -cpu qemu64 -m 2G -bios $(OVMF) -drive file=$(DISK_IMG),if=ide -chardev stdio,id=char0,logfile=serial.log,signal=off -serial chardev:char0 -no-reboot
+	qemu-system-x86_64 -cpu qemu64 -machine q35 -device e1000,netdev=net0 -netdev user,id=net0 -m 2G -bios $(OVMF) -drive file=$(DISK_IMG),if=ide -chardev stdio,id=char0,logfile=serial.log,signal=off -serial chardev:char0 -no-reboot
 else ifeq ($(ARCH),arm)
 	qemu-system-arm -M virt -cpu cortex-a15 -bios $(OVMF) -drive file=$(DISK_IMG),if=sd,format=raw
 endif

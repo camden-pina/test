@@ -15,6 +15,10 @@
 #include <io.h>
 #include <string.h>
 #include <8250.h>
+#include <lai/host.h>
+#include <drivers/pci.h>
+#include <drivers/usb.h>
+#include <drivers/usb_keyboard.h>
 
 static unsigned char SCAN_CODE_MAPPING[] = "\x00""\x1B""1234567890-=""\x08""\tqwertyuiop[]\n\0asdfghjkl;'`\0\\zxcvbnm,./\0*\0 \0\0\0\0\0\0\0\0\0\0\0\0\0-456+1230.\0\0\0\0\0";
 
@@ -78,22 +82,27 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	idt_init();
 
 	ioapic_init();
-	ps2_keyboard_init();
-	// ps2_mouse_init();
 	__asm__ volatile("sti");
 	// drawRect(0, 0, boot_hdr->fb->px_width, boot_hdr->fb->px_height, 0x00000000);
 	// krnl_printf_reset_x();
 	// krnl_printf_reset_y();
 	
 	kprintf("ModernOS (C)\n\n\r");
+
+	pci_init();
+	usb_init();
+	usb_keyboard_init();
+
 	kprintf("Copyright (C) Ideal Technologies Inc.\n\r");
 
 	char *str = kmalloc(1);
 	str = "cat\0";
 	kprintf("%s", str);
+
+	laihost_sleep(5);
 	
 	while (1)
 	{
-
+		// usb_keyboard_poll();
 	}
 }

@@ -168,6 +168,15 @@ _Bool acpi_init(uint64_t rsdp_addr) {
     return 1;
 }
 
+uint64_t acpi_get_mcfg_base() {
+	uint64_t *mcfg = (uint64_t*) acpi_find_table("MCFG", 0);
+    if (!mcfg || !acpi_checksum(mcfg)) {
+        PANIC("ACPI: MCFG not found or corrupted");
+    }
+    kprintf("ACPI: MCFG found at 0x%x\n", mcfg);
+	return (uint64_t)mcfg;
+}
+
 // ACPI table scan function used by LAI (and internally) to find tables by signature.
 void *acpi_scan(const char *signature, size_t index) {
     // Special-case DSDT: obtained from FADT rather than XSDT/RSDT
