@@ -19,7 +19,7 @@ typedef struct {
     uint8_t  prog_if;
     uint8_t  irq;
     uint8_t  header_type;
-    uint32_t bar[6];
+    uint64_t bar[6];  // Changed to 64-bit to support full 64-bit BAR addresses.
 } pci_device_t;
 
 // Public functions.

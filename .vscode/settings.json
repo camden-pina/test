@@ -33,6 +33,13 @@
         "uhci.h": "c",
         "idt.h": "c",
         "isr.h": "c",
-        "usb.h": "c"
+        "usb.h": "c",
+        "ioapic.h": "c",
+        "lapic.h": "c",
+        "pgtable.h": "c",
+        "vmap.h": "c",
+        "errno.h": "c",
+        "pmm.h": "c",
+        "xhci.h": "c"
     }
 }

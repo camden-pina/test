@@ -1,7 +1,7 @@
 [2J[01;01H[=3h[2J[01;01H[0m[35m[40m[0m[37m[40mBdsDxe: failed to load Boot0001 "UEFI QEMU DVD-ROM QM00005 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x2,0xFFFF,0x0): Not Found
 BdsDxe: loading Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)
 BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)
-[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,ED209E62-736F-4B2C-A35D-CEE0D0EDA2CF,0x800,0x187DF)
+[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,68B6E302-1265-4434-B90C-E41E4C06ADE8,0x800,0x187DF)
 [Loader] INFO:     Listing directory:
   EFI
   ModernOS
@@ -10,12 +10,12 @@ BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x
 [Loader] WARN:     No config file found
 [Loader] INFO:     Loading kernel
 [Loader] INFO:       phys addr: 0x100000
-[Loader] INFO:       image size: 288544
-[Loader] INFO:       kernel entry: 0xFFFF800000129FFF
-[Loader] INFO:       memory size: 282624
+[Loader] INFO:       image size: 293680
+[Loader] INFO:       kernel entry: 0xFFFF80000012B59E
+[Loader] INFO:       memory size: 311296
 [Loader] INFO:     Loading executable data segment
 [Loader] INFO:       base: 0xFFFF800000100000
-[Loader] INFO:       size: 0x446C4 (69 pages)
+[Loader] INFO:       size: 0x4B814 (76 pages)
 [Loader] WARN:     No .load_sections section found
 [Loader] INFO:     Found .boot_data section
 [Loader] INFO:     Looking for boot info symbol
@@ -44,13 +44,13 @@ Entry 7: Start=0x1500000, Type=2
 Entry 8: Start=0x7bf36000, Type=3
   [0x7bf36000-0x7bf56000] reserved (131072)
 Entry 9: Start=0x7bf56000, Type=2
-  [0x7bf56000-0x7c27d000] usable (3305472)
-Entry 10: Start=0x7c27d000, Type=8
-  [0x7c27d000-0x7e27d000] EFI runtime data (33554432)
-Entry 11: Start=0x7e27d000, Type=2
-  [0x7e27d000-0x7e28b000] usable (57344)
-Entry 12: Start=0x7e28b000, Type=3
-  [0x7e28b000-0x7f034000] reserved (14323712)
+  [0x7bf56000-0x7c2ac000] usable (3497984)
+Entry 10: Start=0x7c2ac000, Type=8
+  [0x7c2ac000-0x7e2ac000] EFI runtime data (33554432)
+Entry 11: Start=0x7e2ac000, Type=2
+  [0x7e2ac000-0x7e2ba000] usable (57344)
+Entry 12: Start=0x7e2ba000, Type=3
+  [0x7e2ba000-0x7f034000] reserved (14131200)
 Entry 13: Start=0x7f034000, Type=8
   [0x7f034000-0x7f0be000] EFI runtime data (565248)
 Entry 14: Start=0x7f0be000, Type=3
@@ -86,7 +86,7 @@ ACPI: RSDP revision 2 detected
 ACPI: XSDT located at 0x7fb7d0e8, entries=6
 ACPI: FADT found at 0x7fb79000
 ACPI: DSDT found at 0x7fb7a000
-[ACPI1] loaded AML table 'DSDT', total 8440 bytes of AML code.[ACPI1] ACPI namespace created, total of 268 predefined objects.ACPI: Namespace initialized via LAI
+[ACPI1] loaded AML table 'DSDT', total 8389 bytes of AML code.[ACPI1] ACPI namespace created, total of 262 predefined objects.ACPI: Namespace initialized via LAI
 ACPI initialization complete.
 Initializing Local APIC...
 Disabling legacy 8259 PIC...
@@ -103,60 +103,38 @@ ModernOS (C)
 Initializing PCI subsystem...
 ACPI: MCFG found at 0x7fb76000
 PCI: Using PCIe MMCONFIG at 0xb0000000
-PCI: [00:00.0] Intel (VID 0x8086) - 82G33/G31/P35/P31 Express DRAM Controller (DID 0x29c0), Class 0x06 Subclass 0x00
-PCI: [00:01.0] Unknown Vendor (VID 0x1234) - Unknown Device (DID 0x1111), Class 0x03 Subclass 0x00
-PCI: [00:02.0] Intel (VID 0x8086) - 82540EM Gigabit Ethernet (DID 0x100e), Class 0x02 Subclass 0x00
-PCI: [00:1d.0] Intel (VID 0x8086) - Unknown Device (DID 0x2934), Class 0x0c Subclass 0x03
-PCI: [00:1d.1] Intel (VID 0x8086) - Unknown Device (DID 0x2935), Class 0x0c Subclass 0x03
-PCI: [00:1d.2] Intel (VID 0x8086) - Unknown Device (DID 0x2936), Class 0x0c Subclass 0x03
-PCI: [00:1d.7] Intel (VID 0x8086) - Unknown Device (DID 0x293a), Class 0x0c Subclass 0x03
-PCI: [00:1f.0] Intel (VID 0x8086) - 82801IB (ICH9) LPC Interface Controller (DID 0x2918), Class 0x06 Subclass 0x01
-PCI: [00:1f.2] Intel (VID 0x8086) - ICH9 AHCI SATA Controller (DID 0x2922), Class 0x01 Subclass 0x06
-PCI: [00:1f.3] Intel (VID 0x8086) - 82801I (ICH9 Family) SMBus Controller (DID 0x2930), Class 0x0c Subclass 0x05
-PCI: Found 10 PCI device(s)
+PCI: [00:00.0] Vendor ID: 0x8086, Device ID: 0x29c0
+    Class=0x06 Subclass=0x00 ProgIF=0x00
+PCI: BAR[0] = 0x00000000c0000000 (MMIO) Size=0x1000000
+PCI: BAR[2] = 0x00000000c1061000 (MMIO) Size=0x1000
+PCI: Expansion ROM BAR = 0xffff0000 Size=0x10000
+PCI: [00:01.0] Vendor ID: 0x1234, Device ID: 0x1111
+    Class=0x03 Subclass=0x00 ProgIF=0x00
+PCI: BAR[0] = 0x00000000c1040000 (MMIO) Size=0x20000
+PCI: BAR[1] = 0x00006040 (I/O Space) Size=0x40
+PCI: Expansion ROM BAR = 0xfffc0000 Size=0x40000
+PCI: [00:02.0] Vendor ID: 0x8086, Device ID: 0x100e
+    Class=0x02 Subclass=0x00 ProgIF=0x00
+PCI: BAR[0] = 0x0000000800000000 (MMIO, 64-bit) Size=0x4000
+PCI: [00:08.0] Vendor ID: 0x1b36, Device ID: 0x000d
+    Class=0x0c Subclass=0x03 ProgIF=0x30
+PCI: [00:1f.0] Vendor ID: 0x8086, Device ID: 0x2918
+    Class=0x06 Subclass=0x01 ProgIF=0x00
+PCI: BAR[4] = 0x00006080 (I/O Space) Size=0x20
+PCI: BAR[5] = 0x00000000c1060000 (MMIO) Size=0x1000
+PCI: [00:1f.2] Vendor ID: 0x8086, Device ID: 0x2922
+    Class=0x01 Subclass=0x06 ProgIF=0x01
+PCI: BAR[4] = 0x00006000 (I/O Space) Size=0x40
+PCI: [00:1f.3] Vendor ID: 0x8086, Device ID: 0x2930
+    Class=0x0c Subclass=0x05 ProgIF=0x00
+PCI: Found 7 PCI device(s)
 Initializing USB subsystem...
-INTERFACE [0]
-UHCI: Enabled PCI bus mastering; cmd=0x0007 (bus=0, slot=29, func=0)
-USB: Initialized UHCI controller on bus 0 slot 29 with 8 ports
-UHCI: Invalid IRQ (0) reported; defaulting to IRQ 11.
-IOAPIC: Mapping IRQ 11 -> IDT vector 80
-UHCI: Mapped hardware IRQ 11 to IDT vector 0x50
-USB: Device connected on controller UHCI port 0 (low_speed=0), assigned address 1
-UHCI: Setup TD buffer => phys=0x0042b098
-UHCI: Data TD buffer => phys=0x0013dda0
-UHCI: Status TD buffer => phys=0x00000000
-UHCI: TD timeout, token = 0x80080000
-UHCI: Setup stage failed
-USB: Failed to get short device descriptor (port 0)
-USB: Device connected on controller UHCI port 1 (low_speed=0), assigned address 2
-UHCI: Setup TD buffer => phys=0x0042b178
-UHCI: Data TD buffer => phys=0x0013dda0
-UHCI: Status TD buffer => phys=0x00000000
-UHCI: TD timeout, token = 0x80080000
-UHCI: Setup stage failed
-USB: Failed to get short device descriptor (port 1)
-USB: Device connected on controller UHCI port 2 (low_speed=1), assigned address 3
-UHCI: Setup TD buffer => phys=0x0042b258
-UHCI: Data TD buffer => phys=0x0013dda0
-UHCI: Status TD buffer => phys=0x00000000
-UHCI: TD timeout, token = 0x80080000
-UHCI: Setup stage failed
-USB: Failed to get short device descriptor (port 2)
-USB: Device connected on controller UHCI port 3 (low_speed=1), assigned address 4
-UHCI: Setup TD buffer => phys=0x0042b338
-UHCI: Data TD buffer => phys=0x0013dda0
-UHCI: Status TD buffer => phys=0x00000000
-UHCI: TD timeout, token = 0x80080000
-UHCI: Setup stage failed
-USB: Failed to get short device descriptor (port 3)
-USB: Device connected on controller UHCI port 4 (low_speed=1), assigned address 5
-UHCI: Setup TD buffer => phys=0x0042b418
-UHCI: Data TD buffer => phys=0x0013dda0
-UHCI: Status TD buffer => phys=0x00000000
-UHCI: TD timeout, token = 0x80080000
-UHCI: Setup stage failed
-USB: Failed to get short device descriptor (port 4)
-USB: Device connected on controller UHCI port 5 (low_speed=1), assigned address 6
-UHCI: Setup TD buffer => phys=0x0042b4f8
-UHCI: Data TD buffer => phys=0x0013dda0
-UHCI: Status TD buffer => phys=0x00000000
+xHCI: Initializing controller at bus 0 slot 8 func 0
+BARID[0x0000000800000000]
+xHCI: MMIO base mapped to virtual address: 0xffffff8001800000
+xHCI: Controller initialized successfully (maxSlots=64)
+Initializing USB keyboard driver...
+Total USB Devices: 0USB Keyboard: No USB keyboard detected.
+USB: 0 devices enumerated:
+Copyright (C) Ideal Technologies Inc.
+cat

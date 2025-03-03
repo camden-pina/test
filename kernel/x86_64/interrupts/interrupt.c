@@ -78,7 +78,7 @@ void isr_common(uint8_t vector, int error_code) {
             // Example: for Page Fault (vector 14), print CR2 or related info if accessible
             uintptr_t fault_addr;
             __asm__ volatile("mov %%cr2, %0" : "=r"(fault_addr));
-            kprintf("CR2 (Faulting address) = 0x%p\n", (void*)fault_addr);
+            kprintf("CR2 (Faulting address) = %p\n", (void*)fault_addr);
         }
         if (error_code != 0) {
             kprintf("Error Code: 0x%x\n", error_code);

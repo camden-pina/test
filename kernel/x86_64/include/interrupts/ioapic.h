@@ -9,6 +9,6 @@
 bool ioapic_init(void);
 
 // Map an ISA IRQ or GSI to an IDT vector.
-void ioapic_map_irq(uint8_t irq, uint8_t vector);
+uint8_t ioapic_map_irq(uint8_t irq, uint8_t vector);
 
 #endif // IOAPIC_H

@@ -62,7 +62,7 @@ static inline uint16_t vm_flags_to_pe_flags(uint32_t vm_flags) {
     return entry_flags;
   }
 
-static uint64_t *early_map_entry(uintptr_t virt_addr, intptr_t phys_addr, uint32_t vm_flags) {
+uint64_t *early_map_entry(uintptr_t virt_addr, intptr_t phys_addr, uint32_t vm_flags) {
     kassert(virt_addr % PAGE_SIZE == 0);
     kassert(phys_addr % PAGE_SIZE == 0);
 
@@ -138,4 +138,24 @@ void *early_map_entries(uintptr_t vaddr, uintptr_t paddr, size_t count, uint32_t
         }
     }
     return addr;
+}
+
+static uintptr_t next_free_virt = 0xFFFFFF8000D00000; // Start dynamic virtual mappings here
+
+#define ALIGN_UP(x, align) (((x) + ((align) - 1)) & ~((align) - 1))
+
+void *alloc_virt_mem(size_t size, uint32_t vm_flags) {
+    kassert(size > 0);
+    // size = ALIGN_UP(size, PAGE_SIZE); // ensure it's page-aligned
+
+    uintptr_t vaddr = next_free_virt;
+    uintptr_t paddr = pmm_early_alloc_pages(size / PAGE_SIZE);
+    if (!paddr) {
+        panic("Out of physical memory");
+    }
+    // map allocated physical pages to virtual memory
+    early_map_entries(vaddr, paddr, size / PAGE_SIZE, vm_flags);
+
+    next_free_virt += size; // move to next free virtual memory region
+    return (void *)vaddr;
 }

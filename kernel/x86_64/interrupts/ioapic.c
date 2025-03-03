@@ -55,10 +55,10 @@ bool ioapic_init(void) {
 }
 
 // Map an ISA IRQ or GSI to an IDT vector using the I/O APIC.
-void ioapic_map_irq(uint8_t irq, uint8_t vector) {
+uint8_t ioapic_map_irq(uint8_t irq, uint8_t vector) {
     if (!IOREGSEL || !IOREGWIN) {
         kprintf("ioapic_map_irq: I/O APIC not initialized\n");
-        return;
+        return 0;
     }
     kprintf("IOAPIC: Mapping IRQ %llu -> IDT vector %llu\n", irq, vector);
     uint32_t index = IOREDTBL + irq * 2;
@@ -85,4 +85,6 @@ void ioapic_map_irq(uint8_t irq, uint8_t vector) {
     lo_val &= ~0xFF;              // Clear any old vector.
     lo_val |= vector;             // Set the new vector.
     *(IOREGWIN) = lo_val;
+
+    return vector;
 }

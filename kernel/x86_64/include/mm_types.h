@@ -2,11 +2,11 @@
 #define KERNEL_MM_TYPES_H
 
 #include <queue.h>
-#include <mutex.h>
 #include <kernel.h>
-#include <ref.h>
+// #include <ref.h>
 #include <stddef.h>
 #include <str.h>
+#include <stdint.h>
 
 #ifndef PAGE_SIZE
 #define PAGE_SIZE 0x1000
@@ -43,7 +43,6 @@ struct vm_file;
  typedef struct page {
     uint64_t address;             // physical frame
     uint32_t flags;               // page flags
-    mtx_t pg_lock;                // spinlock for certain page struct fields
     struct {                      // *** valid if PG_HEAD ***
         uint64_t count : 63;        //   number of pages in the list
         uint64_t contiguous : 1;    //   whether the list is physically contiguous
@@ -101,7 +100,6 @@ struct pte {
 typedef struct address_space {
   uintptr_t min_addr;
   uintptr_t max_addr;
-  mtx_t lock;
 
   size_t num_mappings;
   LIST_HEAD(struct vm_mapping) mappings;
@@ -111,9 +109,9 @@ typedef struct address_space {
   LIST_HEAD(struct page) table_pages;
 } address_space_t;
 
-#define space_lock(space) __type_checked(struct address_space *, space, mtx_lock(&(space)->lock))
-#define space_unlock(space) __type_checked(struct address_space *, space, mtx_unlock(&(space)->lock))
-#define space_lock_assert(space, w) __type_checked(struct address_space *, space, mtx_assert(&(space)->lock, w))
+// #define space_lock(space) __type_checked(struct address_space *, space, mtx_lock(&(space)->lock))
+// #define space_unlock(space) __type_checked(struct address_space *, space, mtx_unlock(&(space)->lock))
+// #define space_lock_assert(space, w) __type_checked(struct address_space *, space, mtx_assert(&(space)->lock, w))
 
 enum vm_type {
   VM_TYPE_RSVD, // reserved memory

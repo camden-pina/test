@@ -217,7 +217,7 @@ uintptr_t pmm_early_alloc_pages(size_t count) {
 
     kernel_reserved_ptr += size;
     if (kernel_reserved_ptr > kernel_reserved_end) {
-        panic("out of reserved memory");
+        panic("Out of reserved memory. Tried to allocate %llu pages at page size of %x", count, PAGE_SIZE);
     }
 
 
@@ -426,6 +426,43 @@ void* krealloc(void* ptr, size_t sz)
     memcpy(newptr, ptr, sz);
     kfree(ptr);
     return newptr;
+}
+
+// Start of your kernel reserved region
+#define KERNEL_RESERVED_BASE 0xFFFFFF8000C00000ULL
+
+// We'll bump allocate from here onward
+static uintptr_t next_pmm_va = KERNEL_RESERVED_BASE;
+
+/*
+ * pmm_alloc():
+ *  1) Grab one physical page from pmm_early_alloc_pages(1).
+ *  2) Map that physical page to the next free address in our reserved region.
+ *  3) Return the resulting kernel virtual address.
+ */
+void *pmm_alloc(void)
+{
+    // 1) Physical page
+    uintptr_t paddr = pmm_early_alloc_pages(1);
+    if (!paddr) {
+        panic("pmm_alloc: out of physical pages!\n");
+    }
+
+    // 2) Map at next available VA in the reserved region
+    uintptr_t vaddr = next_pmm_va;
+
+    // e.g. read/write, no exec, no user, not 2MB. Adjust flags as needed.
+    const uint32_t vm_flags = VM_WRITE;  
+    early_map_entries(vaddr, paddr, 1, vm_flags);
+
+    // Clear the newly mapped page
+    memset((void*)vaddr, 0, PAGE_SIZE);
+
+    // Advance for next time
+    next_pmm_va += PAGE_SIZE;
+
+    // Return kernel VA
+    return (void*)vaddr;
 }
 
 void __kfree(mm_heap_t *heap, void *ptr) {

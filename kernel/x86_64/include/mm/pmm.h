@@ -103,6 +103,7 @@ void *kmalloca(size_t size, size_t alignment);
 void kfree(void *ptr);
 
 uintptr_t pmm_early_alloc_pages(size_t count);
+void *pmm_alloc(void);
 
 void pmm_pages_unreserve(void* address, uint64_t pageCount);
 void pmm_pages_reserve(void* address, uint64_t pageCount);

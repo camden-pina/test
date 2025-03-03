@@ -88,10 +88,44 @@ image: $(TARGET_BOOT) $(TARGET_KERNEL)
 ################################################################################
 # Ensure an OVMF firmware file exists in build/ (you might generate or download it)
 OVMF := ./RELEASE$(shell echo $(ARCH) | tr '[:lower:]' '[:upper:]')_OVMF.fd
-run: 
+run-serial: 
 	@echo "==> Launching QEMU for $(ARCH)..."
 ifeq ($(ARCH),x86_64)
 	qemu-system-x86_64 \
+  -cpu qemu64 \
+  -machine q35 \
+  -m 2G \
+  -bios "$(OVMF)" \
+  -drive file="$(DISK_IMG)",if=ide \
+  -device qemu-xhci,id=xhci,bus=pcie.0,addr=0x8 \
+  -device usb-kbd,bus=xhci.0 \
+  -device usb-tablet,bus=xhci.0 \
+  -device e1000,netdev=net0 \
+  -netdev user,id=net0 \
+  -chardev stdio,id=char0,logfile=serial.log,signal=off \
+  -serial chardev:char0 \
+  -no-reboot
+endif
+
+run-compat: 
+	@echo "==> Launching QEMU for $(ARCH)..."
+ifeq ($(ARCH),x86_64)
+	qemu-system-x86_64 \
+  -cpu qemu64 \
+  -machine q35 \
+  -m 2G \
+  -bios "$(OVMF)" \
+  -drive file="$(DISK_IMG)",if=ide \
+  -device qemu-xhci,id=xhci,bus=pcie.0,addr=0x8 \
+  -device usb-kbd,bus=xhci.0 \
+  -device usb-tablet,bus=xhci.0 \
+  -device e1000,netdev=net0 \
+  -netdev user,id=net0 \
+  -monitor stdio \
+  -no-reboot
+#-chardev stdio,id=char0,logfile=serial.log,signal=off \
+#-serial chardev:char0 \
+#qemu-system-x86_64 \
   -cpu qemu64 \
   -machine q35 \
   -m 2G \

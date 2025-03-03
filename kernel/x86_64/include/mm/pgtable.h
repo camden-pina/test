@@ -4,7 +4,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
-static uint64_t *early_map_entry(uintptr_t virt_addr, intptr_t phys_addr, uint32_t vm_flags);
+uint64_t *early_map_entry(uintptr_t virt_addr, intptr_t phys_addr, uint32_t vm_flags);
 void *early_map_entries(uintptr_t vaddr, uintptr_t paddr, size_t count, uint32_t vm_flags);
+void *alloc_virt_mem(size_t size, uint32_t vm_flags);
 
 #endif

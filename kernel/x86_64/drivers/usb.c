@@ -1,62 +1,66 @@
 #include <drivers/usb.h>
 #include <drivers/pci.h>
+#include <drivers/ehci.h>
+#include <drivers/uhci.h>
 #include <printf.h>
 #include <panic.h>
 #include <io.h>
 #include <mm/pmm.h>
 #include <string.h>
-#include <drivers/ehci.h>
-#include <drivers/uhci.h>
 
-/* Global USB device list and count */
+/* 
+ * Global USB device list and count
+ */
 usb_device_t usb_devices[MAX_USB_DEVICES];
-int usb_device_count = 0;
+int          usb_device_count = 0;
 
-/* Global array for all USB host controllers */
-static usb_host_controller_t usb_controllers[8];
-static int usb_hc_count = 0;
+/*
+ * Global array for all USB host controllers
+ */
+usb_host_controller_t usb_controllers[8];
+int                  usb_hc_count = 0;
 
-/* Global array for UHCI controllers (for interrupt handling) */
-#define MAX_UHCI_CONTROLLERS 8
-
+/*
+ * Helper for allocating a page (4KB) for USB driver structures.
+ * This uses your existing kernel memory subsystem; update if needed.
+ */
 void* usb_alloc_page(void) {
+    // Example uses 'kmalloca' to allocate and align to 4096
+    // If your OS uses 'pmm_alloc' or something else, adapt accordingly
+    extern void *kmalloca(size_t size, size_t align);
     void *page = kmalloca(4096, 4096);
-    if (!page)
+    if (!page) {
         panic("USB: Out of memory for controller structures");
+    }
     memset(page, 0, 4096);
     return page;
 }
 
-#define PCI_COMMAND 0x04  // Offset of the PCI Command Register
-
-// same init for uhci
-static void enable_uhci_bus_mastering(uint8_t bus, uint8_t slot, uint8_t func) {
+static void enable_bus_mastering(uint8_t bus, uint8_t slot, uint8_t func) {
     // Read current PCI Command register
-    uint16_t cmd = pci_read16(bus, slot, func, PCI_COMMAND);
-    
-    // Set the "Bus Master Enable" bit (bit 2)
-    cmd |= (1 << 2);
-    
-    // Write it back
-    pci_write16(bus, slot, func, PCI_COMMAND, cmd);
+    uint16_t cmd = pci_read16(bus, slot, func, 0x04);
 
-    kprintf("UHCI: Enabled PCI bus mastering; cmd=0x%04x (bus=%u, slot=%u, func=%u)\n",
+    // Set the "Bus Master Enable" bit (bit 2) and Memory Space bit (bit 1)
+    cmd |= (1 << 2) | (1 << 1);
+
+    // Write it back
+    pci_write16(bus, slot, func, 0x04, cmd);
+    kprintf("USB: Enabled PCI bus mastering; cmd=0x%04x (bus=%u,slot=%u,func=%u)\n",
             cmd, bus, slot, func);
 }
 
 /*
- * Initialize a UHCI host controller.
+ * Initialize a UHCI controller
  */
 static int init_uhci_controller(pci_device_t *pci_dev)
 {
-    enable_uhci_bus_mastering(pci_dev->bus, pci_dev->slot, pci_dev->function);
-    // Example: use bar[4] as the I/O base for UHCI. 
-    // Might differ depending on hardware.
-    uint32_t io_base = pci_dev->bar[4] & ~0xF;
-    if (io_base == 0)
-        return -1;
+    enable_bus_mastering(pci_dev->bus, pci_dev->slot, pci_dev->function);
 
-    // Grab next available generic USB controller struct
+    uint32_t io_base = pci_dev->bar[4] & ~0xF;
+    if (io_base == 0) {
+        return -1;
+    }
+
     usb_host_controller_t *hc = &usb_controllers[usb_hc_count++];
     memset(hc, 0, sizeof(*hc));
 
@@ -66,16 +70,16 @@ static int init_uhci_controller(pci_device_t *pci_dev)
 
     // Basic UHCI init
     hc->uhci.frame_list = usb_alloc_page();
-    for (int i = 0; i < 1024; i++)
+    for (int i = 0; i < 1024; i++) {
         hc->uhci.frame_list[i] = 0x00000001;
-
-    hc->uhci.control_qh = kmalloca(sizeof(uhci_qh), 16);
+    }
+    hc->uhci.control_qh = (uhci_qh*)kmalloca(sizeof(uhci_qh), 16);
     hc->uhci.control_qh->head    = 0x00000001;
     hc->uhci.control_qh->element = 0x00000001;
 
-    hc->uhci.frame_list[0] = (uint32_t)(uintptr_t)hc->uhci.control_qh | 0x2;
+    hc->uhci.frame_list[0] = ((uint32_t)(uintptr_t)hc->uhci.control_qh) | 0x2;
 
-    // Reset then run the controller
+    // Reset then run controller
     outw(io_base + 0x00, 0x0004);
     for (volatile int d = 0; d < 10000; d++);
     outw(io_base + 0x00, 0x0000);
@@ -84,164 +88,211 @@ static int init_uhci_controller(pci_device_t *pci_dev)
     outw(io_base + 0x06, 0x0000);
     outw(io_base + 0x00, 0x0041);
 
-    // Count how many ports actually exist
+    // Count ports
     uint8_t ports = 0;
     for (uint8_t p = 0; p < 8; p++) {
-        if (inw(io_base + 0x10 + 2 * p) == 0xFFFF)
+        if (inw(io_base + 0x10 + 2 * p) == 0xFFFF) {
             break;
+        }
         ports++;
     }
     hc->num_ports = ports;
-
-    kprintf("USB: Initialized UHCI controller on bus %d slot %d with %d ports\n",
+    kprintf("USB: Initialized UHCI controller on bus %u slot %u with %u ports\n",
             pci_dev->bus, pci_dev->slot, ports);
 
-    /* 
-     * Now register it as a "UHCI controller" so we can track IRQ, etc.
-     * We'll fill one entry in uhci_controllers[] (from uhci.c).
-     */
-    if (num_uhci_controllers >= MAX_UHCI_CONTROLLERS) {
-        kprintf("UHCI: Too many UHCI controllers!\n");
-        return 0; // we still say "initialized" but won't register IRQ
-    }
-    uhci_controller_t *uc = &uhci_controllers[num_uhci_controllers++];
-    memset(uc, 0, sizeof(*uc));
-    uc->hc  = hc;                // point to our usb_host_controller_t
-    uc->irq = pci_dev->irq;      // read from PCI device
-    uhci_register_interrupt(uc); // properly map IRQ & set up IDT
+    // Example of hooking interrupts in UHCI
+    extern int num_uhci_controllers;
+    extern uhci_controller_t uhci_controllers[];
+    if (num_uhci_controllers < MAX_UHCI_CONTROLLERS) {
+        uhci_controller_t *uc = &uhci_controllers[num_uhci_controllers++];
+        memset(uc, 0, sizeof(*uc));
+        uc->hc  = hc;
+        uc->irq = pci_dev->irq;
+        uhci_register_interrupt(uc);
 
-    // Check if anything is already plugged in
-    for (uint8_t p = 0; p < ports; p++) {
-        uint16_t port_status = inw(io_base + 0x10 + 2 * p);
-        if (port_status & 0x1) {
-            // Do a port reset
-            outw(io_base + 0x10 + 2 * p, port_status | (1 << 9));
-            for (volatile int d = 0; d < 10000; d++);
-            outw(io_base + 0x10 + 2 * p, port_status & ~(1 << 9));
-            for (volatile int d = 0; d < 5000; d++);
-            // Enable port
-            outw(io_base + 0x10 + 2 * p,
-                 inw(io_base + 0x10 + 2 * p) | (1 << 2));
-            uint8_t low_speed = (inw(io_base + 0x10 + 2 * p) & (1 << 8)) ? 1 : 0;
+        // Check if anything is already plugged in
+        for (uint8_t p = 0; p < ports; p++) {
+            uint16_t port_status = inw(io_base + 0x10 + 2 * p);
+            if (port_status & 0x1) {  // device connected
+                // Reset
+                outw(io_base + 0x10 + 2 * p, port_status | (1 << 9));
+                for (volatile int d = 0; d < 10000; d++);
+                outw(io_base + 0x10 + 2 * p, port_status & ~(1 << 9));
+                for (volatile int d = 0; d < 5000; d++);
 
-            // Kick off enumeration
-            usb_process_device_connect(hc, p, low_speed);
+                // Enable port
+                outw(io_base + 0x10 + 2 * p, inw(io_base + 0x10 + 2 * p) | (1 << 2));
+                uint8_t low_speed = (inw(io_base + 0x10 + 2 * p) & (1 << 8)) ? 1 : 0;
+
+                // Kick off enumeration
+                usb_process_device_connect(hc, p, low_speed);
+            }
         }
+    } else {
+        kprintf("UHCI: Too many UHCI controllers, can't register interrupt!\n");
     }
     return 0;
 }
 
-/* Stub functions for OHCI, EHCI, xHCI */
-static int init_ohci_controller(pci_device_t *pci_dev) { return -1; }
-static int init_xhci_controller(pci_device_t *pci_dev) { return -1; }
+/*
+ * Initialize an OHCI controller (stub)
+ */
+static int init_ohci_controller(pci_device_t *pci_dev) {
+    return -1; // Stub
+}
 
 /*
- * Unified control transfer helper.
+ * Initialize an EHCI controller
+ * Example: We rely on an external 'ehci_init_controller()' in ehci.c
+ */
+static int init_ehci_wrapper(pci_device_t *dev) {
+    // We pass the next available usb_host_controller_t to the EHCI driver.
+    usb_host_controller_t *hc = &usb_controllers[usb_hc_count];
+    memset(hc, 0, sizeof(*hc));
+    hc->type    = USB_HC_EHCI;
+    hc->pci_dev = dev;
+
+    int ret = ehci_init_controller(dev, hc);
+    if (ret == 0) {
+        usb_hc_count++;
+    }
+    return ret;
+}
+
+/*
+ * We replace the old stub with a real xHCI initialization from xhci.c
+ * but here's a forward reference in case we need it
+ */
+// extern int init_xhci_controller(pci_device_t *dev);
+
+/*
+ * The unified control transfer helper
  */
 int usb_control_transfer(usb_host_controller_t *hc, uint8_t device_address,
                          usb_setup_packet_t *setup, void *buffer, int length) {
     int ret = -1;
     switch (hc->type) {
+        case USB_HC_UHCI:
+            // If you have a dedicated UHCI control transfer function:
+            ret = uhci_control_transfer(hc, device_address, setup, buffer, length);
+            break;
         case USB_HC_EHCI:
             ret = ehci_control_transfer(hc, device_address, setup, buffer, length);
             break;
-        case USB_HC_UHCI:
-            ret = uhci_control_transfer(hc, device_address, setup, buffer, length);
+        case USB_HC_XHCI:
+            ret = xhci_control_transfer(hc, device_address, setup, buffer, length);
             break;
         default:
             kprintf("USB: Unsupported controller type %d\n", hc->type);
-            ret = -1;
             break;
     }
     return ret;
 }
 
 /*
- * Process a new device connection on a root hub port.
+ * Called when a device is connected at a root hub port.
+ * This function enumerates the device. We do basic steps:
+ *   1) Get 8 bytes of device descriptor
+ *   2) Get full device descriptor (18 bytes)
+ *   3) Assign an address
+ *   4) Get config descriptor
+ *   5) Set config
  */
 void usb_process_device_connect(usb_host_controller_t *hc, uint8_t port, uint8_t low_speed) {
     if (usb_device_count >= MAX_USB_DEVICES) {
         kprintf("USB: Max device limit reached, cannot enumerate port %d\n", port);
         return;
     }
-    
+
+    // We'll assign the device an address = usb_device_count + 1
+    // (0 is reserved for default address phase)
+    uint8_t new_address = (uint8_t)(usb_device_count + 1);
+
     usb_device_t *dev = &usb_devices[usb_device_count++];
-    dev->address = usb_device_count;
-    dev->type = USB_DEVICE_UNKNOWN;
+    memset(dev, 0, sizeof(*dev));
+    dev->address    = new_address;
+    dev->type       = USB_DEVICE_UNKNOWN;
     dev->controller = hc->type;
-    
+
     kprintf("USB: Device connected on controller %s port %d (low_speed=%d), assigned address %d\n",
-            (hc->type == USB_HC_EHCI) ? "EHCI" :
-            (hc->type == USB_HC_UHCI) ? "UHCI" : "Other",
-            port, low_speed, dev->address);
-    
+        usb_host_controller_name(hc->type), port, low_speed, dev->address);
+
     int ret = 0;
     uint8_t buf[18] = {0};
+
+    // 1) Get 8 bytes of device descriptor
     usb_setup_packet_t setup;
-    
-    /* Get short Device Descriptor (8 bytes) */
-    setup.bmRequestType = 0x80;
-    setup.bRequest      = 6;
-    setup.wValue        = 0x0100;
-    setup.wIndex        = 0x0000;
+    memset(&setup, 0, sizeof(setup));
+    setup.bmRequestType = 0x80; // Device-to-host standard request
+    setup.bRequest      = 6;    // GET_DESCRIPTOR
+    setup.wValue        = 0x0100; // Device descriptor
+    setup.wIndex        = 0;
     setup.wLength       = 8;
+
     ret = usb_control_transfer(hc, 0, &setup, buf, 8);
-    if (ret != 0) {
+    if (ret) {
         kprintf("USB: Failed to get short device descriptor (port %d)\n", port);
         return;
     }
-    
-    /* Get full Device Descriptor (18 bytes) */
+
+    // 2) Get full device descriptor (18 bytes)
     setup.wLength = 18;
     ret = usb_control_transfer(hc, 0, &setup, buf, 18);
-    if (ret != 0) {
+    if (ret) {
         kprintf("USB: Failed to get full device descriptor (port %d)\n", port);
         return;
     }
-    
-    kprintf("USB: Device Descriptor for address %d:", dev->address);
+
+    kprintf("USB: Device descriptor (addr=0 - enumerating):");
     for (int i = 0; i < 18; i++) {
         kprintf(" %02x", buf[i]);
     }
     kprintf("\n");
-    
-    /* Set Device Address */
+
+    // 3) Set device address
     setup.bmRequestType = 0x00;
-    setup.bRequest      = 5;
-    setup.wValue        = dev->address;
+    setup.bRequest      = 5;   // SET_ADDRESS
+    setup.wValue        = new_address;
     setup.wIndex        = 0;
     setup.wLength       = 0;
+
     ret = usb_control_transfer(hc, 0, &setup, NULL, 0);
-    if (ret != 0) {
+    if (ret) {
         kprintf("USB: Failed to set device address (port %d)\n", port);
         return;
     }
-    
-    /* Get Configuration Descriptor header (9 bytes) */
+
+    // 4) Get configuration descriptor header
+    uint8_t conf_buf[256] = {0};
     setup.bmRequestType = 0x80;
-    setup.bRequest      = 6;
-    setup.wValue        = 0x0200;
+    setup.bRequest      = 6;   // GET_DESCRIPTOR
+    setup.wValue        = 0x0200; // Configuration descriptor
     setup.wIndex        = 0;
     setup.wLength       = 9;
-    uint8_t conf_buf[256] = {0};
-    ret = usb_control_transfer(hc, dev->address, &setup, conf_buf, 9);
-    if (ret != 0) {
+
+    ret = usb_control_transfer(hc, new_address, &setup, conf_buf, 9);
+    if (ret) {
         kprintf("USB: Failed to get configuration descriptor header (port %d)\n", port);
         return;
     }
+
     uint16_t total_len = conf_buf[2] | (conf_buf[3] << 8);
-    
-    /* Get full Configuration Descriptor */
+    if (total_len > sizeof(conf_buf)) {
+        kprintf("USB: Config descriptor too large (%u), truncating\n", total_len);
+        total_len = sizeof(conf_buf);
+    }
+
+    // 5) Get full config descriptor
     setup.wLength = total_len;
-    ret = usb_control_transfer(hc, dev->address, &setup, conf_buf, total_len);
-    if (ret != 0) {
-        kprintf("USB: Failed to get full configuration descriptor (port %d)\n", port);
+    ret = usb_control_transfer(hc, new_address, &setup, conf_buf, total_len);
+    if (ret) {
+        kprintf("USB: Failed to get full config descriptor (port %d)\n", port);
         return;
     }
-    
-    /* Parse Configuration Descriptor for a HID Keyboard interface */
+
+    // Quick parse for a HID keyboard interface
     for (int i = 0; i < total_len; ) {
-        if (conf_buf[i+1] == 0x04) {
+        if (conf_buf[i+1] == 0x04) { // Interface descriptor
             uint8_t iface_class = conf_buf[i+5];
             uint8_t iface_subclass = conf_buf[i+6];
             uint8_t iface_protocol = conf_buf[i+7];
@@ -251,31 +302,33 @@ void usb_process_device_connect(usb_host_controller_t *hc, uint8_t port, uint8_t
             }
         }
         int desc_len = conf_buf[i];
-        if (desc_len == 0)
+        if (desc_len == 0) {
             break;
+        }
         i += desc_len;
     }
-    
-    /* Set Configuration (assume configuration 1) */
+
+    // 6) Set configuration (assume configuration = 1)
     setup.bmRequestType = 0x00;
-    setup.bRequest      = 9;
+    setup.bRequest      = 9; // SET_CONFIGURATION
     setup.wValue        = 1;
     setup.wIndex        = 0;
     setup.wLength       = 0;
-    ret = usb_control_transfer(hc, dev->address, &setup, NULL, 0);
-    if (ret != 0) {
+
+    ret = usb_control_transfer(hc, new_address, &setup, NULL, 0);
+    if (ret) {
         kprintf("USB: Failed to set configuration (port %d)\n", port);
         return;
     }
-    
-    kprintf("USB: Device enumerated successfully. Address: %d, Type: %s, Controller: %s\n",
-            dev->address,
-            (dev->type == USB_DEVICE_KEYBOARD) ? "HID Keyboard" : "Unknown USB Device",
-            (hc->type == USB_HC_EHCI) ? "EHCI" : (hc->type == USB_HC_UHCI) ? "UHCI" : "Other");
+
+    kprintf("USB: Device enumerated. Address=%d, Type=%s, Controller=%s\n",
+        dev->address,
+        usb_device_type_name(dev->type),
+        usb_host_controller_name(dev->controller));
 }
 
- /*
- * Initialize the USB subsystem by scanning PCI devices for USB host controllers.
+/*
+ * Initialize USB subsystem: scan PCI for USB controllers, init them
  */
 void usb_init(void) {
     kprintf("Initializing USB subsystem...\n");
@@ -283,50 +336,52 @@ void usb_init(void) {
     usb_hc_count     = 0;
     int found        = 0;
 
-    for (int i = 0; i < pci_get_device_count(); i++) {
+    extern int pci_get_device_count(void);
+    extern pci_device_t* pci_get_device(int index);
+
+    int dev_count = pci_get_device_count();
+    for (int i = 0; i < dev_count; i++) {
         pci_device_t *dev = pci_get_device(i);
         if (dev->class_code == 0x0C && dev->subclass == 0x03) {
             uint8_t interface = dev->prog_if;
             int res = -1;
-            kprintf("INTERFACE [%u]\n", interface);
-
-            if (interface == 0x00) {
-                // Remove the old: uhci_register_interrupt(dev);
-                // Instead just call our UHCI init:
+            if (interface == 0x00) {   // UHCI
                 res = init_uhci_controller(dev);
-            } else if (interface == 0x10) {
+            } else if (interface == 0x10) {  // OHCI
                 res = init_ohci_controller(dev);
-            } else if (interface == 0x20) {
-                // Example calls a custom "ehci_init_controller()", or define:
-                // res = init_ehci_controller(dev);
-                // If you do have ehci_init_controller(dev, &usb_controllers[usb_hc_count]) then do that
-                res = ehci_init_controller(dev, &usb_controllers[usb_hc_count]);
-            } else if (interface == 0x30) {
+            } else if (interface == 0x20) {  // EHCI
+                res = init_ehci_wrapper(dev);
+            } else if (interface == 0x30) {  // xHCI
                 res = init_xhci_controller(dev);
             }
-            if (res == 0)
+            if (res == 0) {
                 found++;
+            }
         }
     }
     if (!found) {
-        kprintf("USB: No USB host controllers found on PCI.\n");
+        kprintf("USB: No USB host controllers found.\n");
     }
 }
 
 /*
- * USB polling routine.
+ * USB polling routine
  */
 void usb_poll(void) {
-    // Optional: Poll for status changes if needed.
+    // Some drivers (UHCI) might require periodic checks for TD completion, etc.
+    // EHCI/xHCI are typically interrupt-driven, so maybe not required.
 }
 
 /*
- * Read from a USB device.
+ * Read from a USB device. Very basic example.
+ * For a real driver, we'd do an interrupt or bulk transfer to poll the device.
  */
 int usb_read(usb_device_t *dev, void *buffer, int length) {
     if (dev->type == USB_DEVICE_KEYBOARD) {
+        // Example just fakes data for demonstration
         uint8_t report[8] = {0};
-        report[2] = 0x04;
+        // Put 'A' scancode or something
+        report[2] = 0x04;  // Key 'a' scancode in HID usage
         int to_copy = (length < 8) ? length : 8;
         memcpy(buffer, report, to_copy);
         return to_copy;
@@ -334,37 +389,30 @@ int usb_read(usb_device_t *dev, void *buffer, int length) {
     return 0;
 }
 
-/* Helper functions for printing device info */
 const char* usb_device_type_name(usb_device_type_t type) {
     switch (type) {
-        case USB_DEVICE_KEYBOARD:
-            return "USB Keyboard";
+        case USB_DEVICE_KEYBOARD: return "Keyboard";
         case USB_DEVICE_UNKNOWN:
-        default:
-            return "Unknown USB Device";
+        default:                  return "Unknown";
     }
 }
 
 const char* usb_host_controller_name(usb_hc_type_t type) {
     switch (type) {
-        case USB_HC_UHCI:
-            return "UHCI";
-        case USB_HC_EHCI:
-            return "EHCI";
-        case USB_HC_OHCI:
-            return "OHCI";
-        case USB_HC_XHCI:
-            return "xHCI";
-        default:
-            return "Unknown Controller";
+        case USB_HC_UHCI: return "UHCI";
+        case USB_HC_OHCI: return "OHCI";
+        case USB_HC_EHCI: return "EHCI";
+        case USB_HC_XHCI: return "xHCI";
+        default:          return "UnknownHC";
     }
 }
 
 void usb_print_devices(void) {
-    kprintf("USB: %d device(s) discovered:\n", usb_device_count);
+    kprintf("USB: %d devices enumerated:\n", usb_device_count);
     for (int i = 0; i < usb_device_count; i++) {
-        usb_device_t *dev = &usb_devices[i];
-        kprintf("  Device %d: Address = %d, Type = %s, Controller = %s\n",
-                i + 1, dev->address, usb_device_type_name(dev->type), usb_host_controller_name(dev->controller));
+        usb_device_t *ud = &usb_devices[i];
+        kprintf("  Dev %2d: Address=%2d, Type=%s, HC=%s\n",
+            i+1, ud->address, usb_device_type_name(ud->type),
+            usb_host_controller_name(ud->controller));
     }
 }
