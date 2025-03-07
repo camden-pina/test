@@ -19,6 +19,7 @@
  * @address:  physical address of the page referenced by this entry
 */
 
+/*
 struct page_directory_entry_t
 {
         uint64_t value;
@@ -174,3 +175,4 @@ static void vmem_set_address(struct page_directory_entry_t* entry, uint64_t addr
         entry->value &= 0xFFF0000000000FF;
         entry->value |= (address << 12);
 }
+        */

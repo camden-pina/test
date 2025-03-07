@@ -5,7 +5,7 @@
 
 // Defined in exception.c
 void isr_handler(unsigned long long id, unsigned long long stack_addr);
-void register_interrupt_handler(unsigned int num, void (*handler)(void));
+void register_interrupt_handler(unsigned int num, void (*handler)(uint64_t, uint32_t));
 
 void isr_common(unsigned char num, int error_code);
 

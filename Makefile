@@ -87,6 +87,7 @@ image: $(TARGET_BOOT) $(TARGET_KERNEL)
 # Run QEMU with the Disk Image
 ################################################################################
 # Ensure an OVMF firmware file exists in build/ (you might generate or download it)
+# -device qemu-xhci,id=xhci,bus=pcie.0,addr=0x8,disable_msi=on
 OVMF := ./RELEASE$(shell echo $(ARCH) | tr '[:lower:]' '[:upper:]')_OVMF.fd
 run-serial: 
 	@echo "==> Launching QEMU for $(ARCH)..."

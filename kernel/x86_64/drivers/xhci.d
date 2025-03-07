@@ -4,4 +4,4 @@ drivers/xhci.o: drivers/xhci.c include/drivers/xhci.h \
  include/printf.h include/panic.h include/interrupts/ioapic.h \
  include/descriptor_tables/idt.h include/descriptor_tables/isr.h \
  include/descriptor_tables/../kernel.h include/interrupts/lapic.h \
- include/mm/pgtable.h
+ include/mm/pgtable.h include/msi.h

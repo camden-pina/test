@@ -19,9 +19,12 @@
 #include <drivers/pci.h>
 #include <drivers/usb.h>
 #include <drivers/usb_keyboard.h>
+#include <mm/pgtable.h>
+#include <msi.h>
 
 static unsigned char SCAN_CODE_MAPPING[] = "\x00""\x1B""1234567890-=""\x08""\tqwertyuiop[]\n\0asdfghjkl;'`\0\\zxcvbnm,./\0*\0 \0\0\0\0\0\0\0\0\0\0\0\0\0-456+1230.\0\0\0\0\0";
 
+/*
 static void keyboard_isr(void)
 {
 	unsigned char scancode = inb(0x60);	// Read Scancode
@@ -49,6 +52,7 @@ static void ps2_keyboard_init(void)
 	register_interrupt_handler(33, keyboard_isr);
 	ioapic_map_irq(1, 33);
 }
+*/
 
 extern uint64_t kernel_start;
 extern uint64_t kernel_end;
@@ -89,19 +93,19 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	
 	kprintf("ModernOS (C)\n\n\r");
 
+	char *str = kmalloc(1);
+	str = "cat\0";
+	kprintf("%s", str);
+
 	pci_init();
+	//init_device_interrupts();
 	usb_init();
 	usb_keyboard_init();
 	usb_print_devices();
 
 	kprintf("Copyright (C) Ideal Technologies Inc.\n\r");
 
-	char *str = kmalloc(1);
-	str = "cat\0";
-	kprintf("%s", str);
-
 	while (1)
-	{
-		// usb_keyboard_poll();
+	{// usb_keyboard_poll();
 	}
 }

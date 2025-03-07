@@ -180,6 +180,7 @@ int usb_control_transfer(usb_host_controller_t *hc, uint8_t device_address,
             ret = ehci_control_transfer(hc, device_address, setup, buffer, length);
             break;
         case USB_HC_XHCI:
+        kprintf("WHAT RHW FUCSJKCJCKDJSJOUEIWJDSLKDJSSLKJDLSJDLKSS");
             ret = xhci_control_transfer(hc, device_address, setup, buffer, length);
             break;
         default:

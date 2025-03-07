@@ -40,6 +40,10 @@
         "vmap.h": "c",
         "errno.h": "c",
         "pmm.h": "c",
-        "xhci.h": "c"
+        "xhci.h": "c",
+        "gdt.h": "c",
+        "internet": "c",
+        "stdbool.h": "c",
+        "msr.h": "c"
     }
 }

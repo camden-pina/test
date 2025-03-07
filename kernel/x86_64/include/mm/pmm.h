@@ -105,16 +105,4 @@ void kfree(void *ptr);
 uintptr_t pmm_early_alloc_pages(size_t count);
 void *pmm_alloc(void);
 
-void pmm_pages_unreserve(void* address, uint64_t pageCount);
-void pmm_pages_reserve(void* address, uint64_t pageCount);
-void pmm_pages_free(void* address, uint64_t pageCount);
-void pmm_pages_lock(void* address, uint64_t pageCount);
-
-/*
-uint64_t pmm_get_total_memory(void);
-uint64_t pmm_get_total_memory_used(void);
-uint64_t pmm_get_total_memory_free(void);
-uint64_t pmm_get_total_memory_reserved(void);
-*/
-
 #endif // _PMM_H

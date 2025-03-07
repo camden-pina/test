@@ -38,6 +38,11 @@ static inline uint32_t lapic_read(uint32_t reg_offset) {
     return *(volatile uint32_t *)((uintptr_t)local_apic_base + reg_offset);
 }
 
+// New helper to set the LAPIC TPR:
+void lapic_set_tpr(uint8_t priority) {
+    lapic_write(LAPIC_TPR, (uint32_t)priority);
+}
+
 // Disable the legacy 8259 PIC by remapping and masking all interrupts.
 static void disable_pic(void) {
     kprintf("Disabling legacy 8259 PIC...\n");
@@ -68,6 +73,43 @@ static void disable_pic(void) {
     kprintf("PIC remapped and masked (all IRQs off).\n");
 }
 
+void lapic_init(void) {
+    kprintf("Initializing Local APIC...\n");
+    disable_pic();
+
+    // Read APIC base from MSR and enable the LAPIC in hardware
+    uint64_t apic_base_msr = read_msr(MSR_IA32_APIC_BASE);
+    local_apic_base = (uint32_t *)(uintptr_t)(apic_base_msr & 0xFFFFF000ULL);
+    apic_base_msr |= (1ULL << 11);
+    write_msr(MSR_IA32_APIC_BASE, apic_base_msr);
+    kprintf("Local APIC base=%p (from MSR), APIC enabled via MSR (0x%llx)\n", 
+            local_apic_base, apic_base_msr);
+
+    // Set the Spurious-Interrupt Vector Register (SVR)
+    uint32_t svr = lapic_read(LAPIC_SVR);
+    svr &= 0xFFFFFF00;   
+    svr |= 0xFF;         // Spurious vector = 0xFF
+    svr |= (1 << 8);     // APIC software-enable bit
+    lapic_write(LAPIC_SVR, svr);
+    kprintf("LAPIC: SVR set to 0x%08x (spurious vector=0x%02X, APIC enabled)\n", svr, svr & 0xFF);
+
+    // Mask LINT0/LINT1
+    uint32_t lint0 = lapic_read(LAPIC_LVT_LINT0);
+    uint32_t lint1 = lapic_read(LAPIC_LVT_LINT1);
+    lint0 |= (1 << 16);
+    lint1 |= (1 << 16);
+    lapic_write(LAPIC_LVT_LINT0, lint0);
+    lapic_write(LAPIC_LVT_LINT1, lint1);
+    kprintf("LAPIC: LINT0/LINT1 masked (0x%08x, 0x%08x)\n", lint0, lint1);
+
+    // **Important**: Set TPR to 0 => unmask all interrupt priorities
+    lapic_set_tpr(0);
+    kprintf("LAPIC: TPR set to 0 (no priority masking)\n");
+
+    kprintf("Local APIC initialization complete.\n");
+}
+
+/*
 // Public function to initialize the Local APIC.
 void lapic_init(void) {
     kprintf("Initializing Local APIC...\n");
@@ -104,6 +146,7 @@ void lapic_init(void) {
 
     kprintf("Local APIC initialization complete.\n");
 }
+    */
 
 // Public function to send an End-of-Interrupt signal.
 void apic_send_eoi_if_necessary(uint8_t vector) {

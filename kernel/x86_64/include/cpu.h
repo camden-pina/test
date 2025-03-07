@@ -15,4 +15,6 @@ void cpu_enable_interrupts();
 uint64_t cpu_save_clear_interrupts();
 void cpu_restore_interrupts(uint64_t flags);
 
+uint64_t __read_cr3();
+
 #endif

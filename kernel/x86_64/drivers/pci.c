@@ -7,6 +7,8 @@
 #include <mm/pmm.h>
 #include <stdbool.h>
 
+static uint64_t pci_get_bar_size(uint16_t bus, uint16_t slot, uint16_t func, int bar_index);
+
 #define PCI_MAX_FUNCTIONS 8
 #define PCI_MAX_DEVICES   256
 
@@ -179,6 +181,48 @@ static int pci_is_bridge(uint16_t bus, uint16_t slot, uint16_t func) {
     return (base_class == 0x06 && sub_class == 0x04);
 }
 
+/*
+ * pci_resource_len - Return the length in bytes of a given PCI device BAR.
+ *
+ * @dev: Pointer to the pci_device_t structure.
+ * @bar_index: The BAR index (0 to 5).
+ *
+ * Returns: The size (in bytes) of the BAR as reported by the device,
+ *          or 0 if the BAR is unused or the index is invalid.
+ */
+uint64_t pci_resource_len(pci_device_t *dev, int bar_index)
+{
+    if (!dev || bar_index < 0 || bar_index >= 6) {
+        kprintf("pci_resource_len: Invalid device or BAR index %d\n", bar_index);
+        return 0;
+    }
+
+    uint64_t size = pci_get_bar_size(dev->bus, dev->slot, dev->function, bar_index);
+    if (size == 0)
+        kprintf("pci_resource_len: BAR[%d] reports size 0\n", bar_index);
+
+    return size;
+}
+
+/*
+ * pci_resource_start - Return the physical start address of a PCI device BAR.
+ *
+ * @dev: Pointer to the pci_device_t structure.
+ * @bar_index: The BAR index (0 to 5).
+ *
+ * Returns: The physical base address of the BAR as stored in the device's
+ *          BAR array, or 0 if the index is invalid.
+ */
+uintptr_t pci_resource_start(pci_device_t *dev, int bar_index)
+{
+    if (!dev || bar_index < 0 || bar_index >= 6) {
+        kprintf("pci_resource_start: Invalid device or BAR index %d\n", bar_index);
+        return 0;
+    }
+
+    return dev->bar[bar_index];
+}
+
 // Improved BAR size calculation with support for 64-bit BARs.
 static uint64_t pci_get_bar_size(uint16_t bus, uint16_t slot, uint16_t func, int bar_index) {
     uint32_t bar_offset = 0x10 + bar_index * 4;
@@ -207,6 +251,24 @@ static uint64_t pci_get_bar_size(uint16_t bus, uint16_t slot, uint16_t func, int
     return size;
 }
 
+// Change this function from static to public so it can be used by other modules.
+int pci_find_capability(uint16_t bus, uint16_t slot, uint16_t func, uint8_t cap_id) {
+    // First, check if the device supports capabilities (bit 4 in the Status register).
+    uint16_t status = pci_read16(bus, slot, func, 0x06);
+    if (!(status & 0x10))
+        return 0; // No capabilities
+
+    // The pointer to the first capability structure is at offset 0x34.
+    uint8_t cap_ptr = pci_config_read(bus, slot, func, 0x34) & 0xFF;
+    while (cap_ptr) {
+        uint8_t current_cap = pci_config_read(bus, slot, func, cap_ptr) & 0xFF;
+        if (current_cap == cap_id)
+            return cap_ptr;
+        cap_ptr = pci_config_read(bus, slot, func, cap_ptr + 1) & 0xFF;
+    }
+    return 0; // Not found
+}
+
 static void pci_probe_function(uint16_t bus, uint16_t slot, uint16_t func) {
     uint32_t id_reg = pci_config_read(bus, slot, func, 0x00);
     uint16_t vendor_id = id_reg & 0xFFFF;
@@ -233,6 +295,16 @@ static void pci_probe_function(uint16_t bus, uint16_t slot, uint16_t func) {
         dev->subclass = subclass;
         dev->prog_if = prog_if;
         dev->header_type = header_type;
+
+        // Read the Interrupt Line register (IRQ number)
+        uint32_t irq_reg = pci_config_read(bus, slot, func, 0x3C);
+        uint8_t irq_line = irq_reg & 0xFF; // Only the lower 8 bits store the IRQ line
+
+        // Store it in the PCI device structure
+        dev->irq = irq_line;
+
+        kprintf("    IRQ=0x%02x\n", irq_line);
+
         // Initialize BARs to 0.
         for (int i = 0; i < 6; i++) {
             dev->bar[i] = 0;

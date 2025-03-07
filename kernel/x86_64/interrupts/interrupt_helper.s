@@ -204,3 +204,56 @@ uhci_isr\num:
 
 # Example: Generate UHCI ISR for vector 0x50 (80 decimal)
 UHCI_ISR_NOERR 80
+
+
+    .section .text
+    .globl xhci_isr_common_stub
+    .type xhci_isr_common_stub, @function
+xhci_isr_common_stub:
+    # Save registers that might be clobbered.
+    pushq %rax
+    pushq %rcx
+    pushq %rdx
+    pushq %rbx
+    pushq %rbp
+    pushq %rsi
+    pushq %rdi
+    pushq %r8
+    pushq %r9
+    pushq %r10
+    pushq %r11
+    pushq %r12
+    pushq %r13
+    pushq %r14
+    pushq %r15
+
+    # The ISR stub macro convention is that the vector number (0x50) and a dummy error code
+    # have been pushed on the stack. According to our stack layout:
+    #   - The dummy error code is at offset 120(%rsp)
+    #   - The vector number is at offset 128(%rsp)
+    movq 120(%rsp), %rdi   # First argument: vector number
+    movl 128(%rsp), %esi   # Second argument: error code
+    call xhci_interrupt_handler_main
+
+    # Restore registers in reverse order.
+    popq %r15
+    popq %r14
+    popq %r13
+    popq %r12
+    popq %r11
+    popq %r10
+    popq %r9
+    popq %r8
+    popq %rdi
+    popq %rsi
+    popq %rbp
+    popq %rbx
+    popq %rdx
+    popq %rcx
+    popq %rax
+
+    # Clean up the stack (remove the dummy error code and vector number, 16 bytes total).
+    addq $16, %rsp
+
+    # Return from the interrupt.
+    iretq

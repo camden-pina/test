@@ -59,20 +59,25 @@ typedef struct uhci_qh {
 
 /*
  * xHCI Data Structures (simplified for demonstration)
- *
- * We embed xHCI-specific state in a sub-structure for clarity.
  */
 #define XHCI_MAX_SLOTS          256
 #define XHCI_CMD_RING_SIZE      256
 #define XHCI_EVENT_RING_SIZE    256
 
+/* The generic xHCI TRB (Transfer Request Block) */
 typedef struct xhci_trb {
     uint32_t field[4];
 } xhci_trb_t;
 
 /*
- * xHCI-specific host controller state
+ * xHCI Event Ring Segment Table Entry
  */
+typedef struct __attribute__((packed)) xhci_erst_entry {
+    uint64_t seg_addr;  // Physical address of this event ring segment
+    uint32_t seg_size;  // Number of TRBs in this segment
+    uint32_t reserved;
+} xhci_erst_entry_t;
+
 typedef struct xhci_state {
     volatile uint32_t *db_regs;   // Doorbell registers base
     volatile uint32_t *run_regs;  // Runtime registers base
@@ -85,11 +90,14 @@ typedef struct xhci_state {
     uint8_t      cmd_cycle;
 
     // Event ring
-    xhci_trb_t *event_ring;
-    uint16_t     evt_ring_index;
-    uint8_t      evt_cycle;
+    xhci_trb_t          *event_ring;
+    uint16_t             evt_ring_index;
+    uint8_t              evt_cycle;
 
-    // Mapping of USB address to xHCI slot ID
+    // **Add Event Ring Segment Table (ERST)**
+    xhci_erst_entry_t   *erst;    // Event Ring Segment Table
+
+    // Mapping of USB address -> xHCI slot ID
     uint8_t slot_for_address[256];
 
     // The maximum number of slots the controller supports
@@ -110,33 +118,39 @@ typedef struct {
  * USB Host Controller
  */
 typedef struct usb_host_controller {
-    usb_hc_type_t type;         // UHCI, OHCI, EHCI, xHCI
-    pci_device_t *pci_dev;      // The associated PCI device
-    uint32_t      io_base;      // I/O base (for UHCI/OHCI/EHCI)
-    volatile uint32_t *op_base; // Memory mapped base (for EHCI/xHCI/others)
-    uint8_t       num_ports;    // Number of root hub ports discovered
+    usb_hc_type_t type;          // UHCI, OHCI, EHCI, xHCI
+    pci_device_t *pci_dev;       // The associated PCI device
+    uint32_t      io_base;       // I/O base (UHCI/OHCI/EHCI)
+    volatile uint32_t *op_base;  // For EHCI/xHCI (MMIO operational regs)
+    uint8_t       num_ports;     // # of root hub ports
+    uint8_t       irq;           // IRQ line or vector
+
+    // The event ring segment table for xHCI (if used)
+    xhci_erst_entry_t *erst;
 
     union {
+        // UHCI-specific
         struct {
-            // UHCI structures
             uint32_t *frame_list;
             uhci_qh  *control_qh;
         } uhci;
+
+        // EHCI-specific
         struct {
-            // EHCI structures
             uint32_t *periodic_list;
             ehci_qh  *async_head;
         } ehci;
+
+        // xHCI-specific
         struct {
-            // xHCI-specific
             xhci_state_t xhci;
         } x;
     };
 } usb_host_controller_t;
 
 /*
- * Global arrays for devices and host controllers.
- * These are defined in usb.c, but we declare them as extern here so other files can use them.
+ * Global arrays for devices and host controllers
+ * (Defined in usb.c)
  */
 extern usb_device_t usb_devices[MAX_USB_DEVICES];
 extern int          usb_device_count;
@@ -169,12 +183,18 @@ const char* usb_host_controller_name(usb_hc_type_t type);
 
 /*
  * xHCI-specific initialization and transfer routines
- * (defined in xhci.c)
  */
 int init_xhci_controller(pci_device_t *pci_dev);
 int xhci_control_transfer(usb_host_controller_t *hc, uint8_t dev_addr,
                           usb_setup_packet_t *setup, void *buffer, int length);
 
-/* We also define xhci_bulk_transfer(), xhci_interrupt_transfer(), etc. if needed */
+int xhci_bulk_transfer(usb_host_controller_t *hc, uint8_t dev_addr,
+                       uint8_t endpoint, void *buffer, int length);
+
+int xhci_interrupt_transfer(usb_host_controller_t *hc, uint8_t dev_addr,
+                            uint8_t endpoint, void *buffer, int length);
+
+int xhci_iso_transfer(usb_host_controller_t *hc, uint8_t dev_addr,
+                      uint8_t endpoint, void *buffer, int length, uint32_t frame);
 
 #endif // USB_H

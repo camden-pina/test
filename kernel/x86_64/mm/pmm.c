@@ -258,30 +258,6 @@ void init_kheap() {
     kprintf("initialized kernel heap\n");
 }
 
-void pmm_pages_lock(void* address, uint64_t pageCount)
-{
-    for (uint64_t i = 0; i < pageCount; i++)
-        bitmap_page_lock((void*)((uint64_t)address + (i * 0x1000)));
-}
-
-void pmm_pages_free(void* address, uint64_t pageCount)
-{
-    for (uint64_t i = 0; i < pageCount; i++)
-        bitmap_page_free((void*)((uint64_t)address + (i * 0x1000)));
-}
-
-void pmm_pages_reserve(void* address, uint64_t pageCount)
-{
-    for (uint64_t i = 0; i < pageCount; i++)
-        bitmap_page_reserve((void*)((uint64_t)address + (i * 0x1000)));
-}
-
-void pmm_pages_unreserve(void* address, uint64_t pageCount)
-{
-    for (uint64_t i = 0; i < pageCount; i++)
-        bitmap_page_unreserve((void*)((uint64_t)address + (i * 0x1000)));
-}
-
 void *__kmalloc(mm_heap_t *heap, size_t size, size_t alignment) {
     kassert(heap != NULL);
 
@@ -510,78 +486,3 @@ struct pmm_metadata
 {
     uint64_t* end;
 };
-
-/*
- * kmalloc()
- * 
- * @sz: size of free memory client requests
- * 
- * Returns a VOID* pointer to a free memory chunk of size 'sz' if
- * found or NULL otherwise.
- * 
- * Metadata about the memory chunk if successful is 8 bytes prior 
- * to the pointer returned
- */
-/*void* kmalloc(size_t sz)
-{
-    if (!sz)
-        return NULL;
-    
-    uint64_t size_pages = (((uint64_t)sz + 8) / 4096) + 1;
-    
-    size_t* startAlloc = NULL;
-    size_t endAlloc = 0;
-
-    if (((bitmap_size * 8) - page_bitmap_idx) > size_pages)
-    {
-        if (!startAlloc)
-        {
-            startAlloc = bitmap_page_request();
-            endAlloc = (uint64_t)startAlloc + 0x1000;
-        }
-        else
-            endAlloc = (uint64_t)bitmap_page_request();
-    }
-    else
-    {
-        kprintf("not enough memory");
-        return NULL;
-    }
-
-    // startAlloc points to memory address 0xFD0CD4000
-    // the end of startAlloc
-
-    *startAlloc = endAlloc;
-
-    return startAlloc + 1;  // first 8 bytes of memory chunk are reserved for metadata
-}
-
-void kfree(void* ptr)
-{
-    if (!ptr)
-        return;
-
-    uint64_t page_start = (uint64_t)((uint64_t*)ptr-1);
-    uint64_t page_end = *((uint64_t*)ptr-1);
-
-    pmm_pages_free(((uint64_t*)ptr-1), (page_end - page_start)/4096);
-}
-
-void* krealloc(void* ptr, size_t sz)
-{
-    if (!ptr)
-        return kmalloc(sz);
-    
-    void* newptr = kmalloc(sz);
-    memcpy(newptr, ptr, sz);
-    kfree(ptr);
-    return newptr;
-}
-
-// Getters & Setters
-uint64_t pmm_get_total_memory(void) { return total_memory; }
-uint64_t pmm_get_total_memory_used(void) { return total_memory_used; }
-uint64_t pmm_get_total_memory_free(void) { return total_memory_free; }
-uint64_t pmm_get_total_memory_reserved(void) { return total_memory_reserved; }
-
-*/

@@ -7,6 +7,14 @@
 #define PCI_CONFIG_ADDRESS 0xCF8
 #define PCI_CONFIG_DATA    0xCFC
 
+/* PCI configuration space command register offset */
+#define PCI_COMMAND               0x04
+
+/* PCI Command Register bit definitions */
+#define PCI_COMMAND_IO            0x1    // I/O access enable
+#define PCI_COMMAND_MEMORY        0x2    // Memory access enable
+#define PCI_COMMAND_BUS_MASTER    0x4    // Bus mastering enable
+
 // PCI device structure.
 typedef struct {
     uint16_t bus;
@@ -38,5 +46,10 @@ uint16_t pci_read16(uint16_t bus, uint16_t slot, uint16_t function, uint8_t offs
 void pci_write16(uint16_t bus, uint16_t slot, uint16_t function, uint8_t offset, uint16_t data);
 uint32_t pci_read32(uint16_t bus, uint16_t slot, uint16_t function, uint8_t offset);
 void pci_write32(uint16_t bus, uint16_t slot, uint16_t function, uint8_t offset, uint32_t data);
+
+uintptr_t pci_resource_start(pci_device_t *dev, int bar_index);
+uint64_t pci_resource_len(pci_device_t *dev, int bar_index);
+
+int pci_find_capability(uint16_t bus, uint16_t slot, uint16_t func, uint8_t cap_id);
 
 #endif

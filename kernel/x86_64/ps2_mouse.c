@@ -9,7 +9,7 @@ static unsigned int mouse_y = 0;
 static char mouse_byte[3];
 static unsigned char mouse_cycle = 0;
 
-static void mouse_handler(void)
+static void mouse_handler(uint64_t vector, uint32_t error)
 {
 	char _status = inb(MOUSE_PORT);
 
