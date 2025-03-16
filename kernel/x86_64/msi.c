@@ -13,6 +13,7 @@ extern uintptr_t next_free_virt;  // declared in your pgtable.c
 
 /**
  * map_physical_region - Map an existing physical region into virtual memory.
+ 
  *
  * @phys_addr: The physical start address of the region.
  * @size:      The size (in bytes) of the region to map.
@@ -100,8 +101,12 @@ typedef struct __attribute__((packed)) msix_table_entry {
  * Enables MSI-X for the given PCI device.
  *
  * This function locates the MSI-X capability (cap ID 0x11), verifies that the device
- * supports at least the requested number of vectors, maps the MSI-X table from the BAR,
- * initializes each table entry with the message address/data, and then clears the function mask.
+ * supports at least the requested number of vectors, maps the MSI-X table and the MSI-X
+ * Pending Bit Array (PBA) from the BARs, initializes each table entry with the message
+ * address/data, clears the PBA, and then updates the MSI-X capability structure:
+ *  - The Table Offset field is set to the MSI-X Message Table.
+ *  - The PBA Offset field is set to the MSI-X Pending Bit Array.
+ * Finally, it clears the function mask and enables MSI-X.
  */
 int pci_enable_msix(pci_device_t *dev, uint8_t vector_base, uint16_t num_vectors) {
     int cap_offset = pci_find_capability(dev->bus, dev->slot, dev->function, 0x11);
@@ -112,14 +117,20 @@ int pci_enable_msix(pci_device_t *dev, uint8_t vector_base, uint16_t num_vectors
     }
     kprintf("MSI-X capability found at offset 0x%x\n", cap_offset);
 
+    // Read the MSI-X Message Control register and determine table size.
     uint16_t msg_control = pci_read16(dev->bus, dev->slot, dev->function, cap_offset + 2);
+    kprintf("Initial MSI-X Message Control: 0x%x\n", msg_control);
     uint16_t table_size = (msg_control & 0x07FF) + 1;
+    kprintf("MSI-X table size (number of vectors): %u\n", table_size);
+    
     if (num_vectors > table_size) {
         kprintf("Requested num_vectors %u exceeds device MSI-X table size %u\n",
                 num_vectors, table_size);
         return -1;
     }
 
+    // --- Map the MSI-X Message Table ---
+    // Read the Table information from the MSI-X capability structure (offset 4)
     uint32_t table_info = pci_config_read(dev->bus, dev->slot, dev->function, cap_offset + 4);
     uint8_t table_bar = table_info & 0x7;
     uint32_t table_offset = table_info & ~0x7;
@@ -132,30 +143,84 @@ int pci_enable_msix(pci_device_t *dev, uint8_t vector_base, uint16_t num_vectors
     kprintf("MSI-X table: BAR %u, physical address=0x%lx\n", table_bar, msix_table_phys);
 
     // Calculate the size needed for the MSI-X table.
-    size_t mapping_size = (num_vectors * sizeof(msix_table_entry_t));
-    // Use our helper to map the physical region into virtual address space.
-    msix_table_entry_t *msix_table = (msix_table_entry_t *)
-                                     map_physical_region(msix_table_phys, mapping_size, VM_WRITE | VM_NOCACHE);
-    if (!msix_table) {
+    size_t table_mapping_size = num_vectors * sizeof(msix_table_entry_t);
+    kprintf("Mapping MSI-X table region: size=0x%zx bytes\n", table_mapping_size);
+
+    // --- Ensure table physical address is page aligned ---
+    size_t table_pgoff = msix_table_phys % PAGE_SIZE;
+    uintptr_t aligned_msix_table_phys = msix_table_phys - table_pgoff;
+    size_t aligned_table_mapping_size = table_mapping_size + table_pgoff;
+
+    msix_table_entry_t *mapped_table_region = (msix_table_entry_t *)
+        map_physical_region(aligned_msix_table_phys, aligned_table_mapping_size, VM_WRITE | VM_NOCACHE);
+    if (!mapped_table_region) {
         kprintf("Failed to map MSI-X table region\n");
         return -1;
     }
+    msix_table_entry_t *msix_table = (msix_table_entry_t *)((uintptr_t)mapped_table_region + table_pgoff);
+    kprintf("MSI-X table mapped at virtual address 0x%p\n", msix_table);
 
+    // --- Map the MSI-X Pending Bit Array (PBA) ---
+    // Read the PBA information from the MSI-X capability structure (offset 8)
+    uint32_t pba_info = pci_config_read(dev->bus, dev->slot, dev->function, cap_offset + 8);
+    uint8_t pba_bar = pba_info & 0x7;
+    uint32_t pba_offset = pba_info & ~0x7;
+    if (pba_bar >= 6) {
+        kprintf("Invalid BAR index %u for MSI-X PBA\n", pba_bar);
+        return -1;
+    }
+    uintptr_t pba_bar_base = dev->bar[pba_bar];
+    uintptr_t msix_pba_phys = pba_bar_base + pba_offset;
+    // The PBA is a bit array with one bit per MSI-X vector.
+    // Calculate the number of 32-bit words required (rounding up).
+    size_t pba_mapping_size = ((table_size + 31) / 32) * sizeof(uint32_t);
+    kprintf("Mapping MSI-X PBA region: size=0x%zx bytes\n", pba_mapping_size);
+
+    // --- Ensure PBA physical address is page aligned ---
+    size_t pba_pgoff = msix_pba_phys % PAGE_SIZE;
+    uintptr_t aligned_msix_pba_phys = msix_pba_phys - pba_pgoff;
+    size_t aligned_pba_mapping_size = pba_mapping_size + pba_pgoff;
+
+    uint32_t *mapped_pba_region = (uint32_t *)
+        map_physical_region(aligned_msix_pba_phys, aligned_pba_mapping_size, VM_WRITE | VM_NOCACHE);
+    if (!mapped_pba_region) {
+        kprintf("Failed to map MSI-X PBA region\n");
+        return -1;
+    }
+    uint32_t *msix_pba = (uint32_t *)((uintptr_t)mapped_pba_region + pba_pgoff);
+    kprintf("MSI-X PBA mapped at virtual address 0x%p\n", msix_pba);
+    
+    // Initialize the PBA by clearing all bits.
+    memset(msix_pba, 0, pba_mapping_size);
+    kprintf("MSI-X PBA initialized (all bits cleared)\n");
+
+    // --- Initialize MSI-X Table Entries ---
     uint64_t apic_base = read_msr(MSR_IA32_APIC_BASE) & 0xFFFFF000ULL;
-    uint32_t msg_addr = (uint32_t)apic_base;
+    uint32_t msg_addr = (uint32_t) apic_base;
+    kprintf("LAPIC base (for MSI-X message address): 0x%x\n", msg_addr);
     
     for (uint16_t i = 0; i < num_vectors; i++) {
         msix_table[i].msg_addr_lo = msg_addr;
         msix_table[i].msg_addr_hi = 0;
         msix_table[i].msg_data    = vector_base + i;
         msix_table[i].vector_control = 0;  // Unmask the entry.
+        kprintf("MSI-X table entry %u: msg_addr_lo=0x%x, msg_addr_hi=0x%x, msg_data=0x%x, vector_control=0x%x\n",
+                i, msix_table[i].msg_addr_lo, msix_table[i].msg_addr_hi,
+                msix_table[i].msg_data, msix_table[i].vector_control);
     }
     
-    msg_control = (msg_control & ~(1 << 14)) | (1 << 15);
-    pci_write16(dev->bus, dev->slot, dev->function, cap_offset + 2, msg_control);
+    // --- Update the MSI-X Capability Structure ---
+    // Reprogram the Table and PBA Offset fields so that they point to the allocated regions.
+    // (If the physical layout was relocated, update the offset portions accordingly.)
+    pci_write32(dev->bus, dev->slot, dev->function, cap_offset + 4, table_info);
+    pci_write32(dev->bus, dev->slot, dev->function, cap_offset + 8, pba_info);
+    kprintf("MSI-X capability structure updated with table and PBA offsets\n");
 
-//    msg_control &= ~(1 << 14);  // Clear the MSI-X Function Mask.
- //   pci_write16(dev->bus, dev->slot, dev->function, cap_offset + 2, msg_control);
+    // --- Update the MSI-X Message Control register ---
+    // Clear the Function Mask (bit 14) and set the MSI-X Enable bit (bit 15)
+    msg_control = (msg_control & ~(1 << 14)) | (1 << 15);
+    kprintf("Writing updated MSI-X Message Control: 0x%x\n", msg_control);
+    pci_write16(dev->bus, dev->slot, dev->function, cap_offset + 2, msg_control);
 
     kprintf("MSI-X enabled for device %02x:%02x.%x with base vector 0x%x (%u vectors)\n",
             dev->bus, dev->slot, dev->function, vector_base, num_vectors);

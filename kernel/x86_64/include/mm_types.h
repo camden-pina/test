@@ -53,7 +53,6 @@ struct vm_file;
     };
     struct pte *entries;          // s-list of pte structs (l)
     struct page *next;            // next page ref (l)
-    _refcount;
 } page_t;
 
 // page flags
@@ -65,7 +64,7 @@ struct vm_file;
 
 #define PG_SIZE_MASK  (PG_BIGPAGE | PG_HUGEPAGE)
 
-static always_inline size_t pg_flags_to_size(uint32_t pg_flags) {
+static inline size_t pg_flags_to_size(uint32_t pg_flags) {
   if (pg_flags & PG_BIGPAGE) {
     return PAGE_SIZE_2MB;
   } else if (pg_flags & PG_HUGEPAGE) {
@@ -83,7 +82,7 @@ static always_inline size_t pg_flags_to_size(uint32_t pg_flags) {
  * is actively mapped in the system.
  */
 struct pte {
-  __ref struct page *page;
+  struct page *page;
   uint64_t *entry;
   uintptr_t address;
   SLIST_ENTRY(struct pte) next;
@@ -187,7 +186,7 @@ typedef struct vm_mapping {
 #define VM_MAP_MASK   0xFE0  // mask of mapping flags
 #define VM_FLAGS_MASK 0xFFFF // mask of public flags
 
-static always_inline size_t vm_flags_to_size(uint32_t vm_flags) {
+static inline size_t vm_flags_to_size(uint32_t vm_flags) {
   if (vm_flags & VM_HUGE_2MB) {
     return PAGE_SIZE_2MB;
   } else if (vm_flags & VM_HUGE_1GB) {

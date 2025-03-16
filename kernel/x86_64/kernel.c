@@ -21,11 +21,11 @@
 #include <drivers/usb_keyboard.h>
 #include <mm/pgtable.h>
 #include <msi.h>
+#include <init.h>
 
 static unsigned char SCAN_CODE_MAPPING[] = "\x00""\x1B""1234567890-=""\x08""\tqwertyuiop[]\n\0asdfghjkl;'`\0\\zxcvbnm,./\0*\0 \0\0\0\0\0\0\0\0\0\0\0\0\0-456+1230.\0\0\0\0\0";
 
-/*
-static void keyboard_isr(void)
+static void keyboard_isr(uint64_t vector, uint32_t error)
 {
 	unsigned char scancode = inb(0x60);	// Read Scancode
 
@@ -42,7 +42,7 @@ static void keyboard_isr(void)
 
 		unsigned char pressed_char = SCAN_CODE_MAPPING[scancode];
 
-		kprintf("%c", pressed_char);
+		kprintf("fo");
 	}
 }
 
@@ -51,8 +51,8 @@ static void ps2_keyboard_init(void)
 	kprintf("Initializing Keyboard\n\r");
 	register_interrupt_handler(33, keyboard_isr);
 	ioapic_map_irq(1, 33);
+	kprintf("DS");
 }
-*/
 
 extern uint64_t kernel_start;
 extern uint64_t kernel_end;
@@ -79,12 +79,10 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	pmm_init(boot_info_v2->mem_map.map, boot_info_v2->mem_map.size, sizeof(memory_map_entry_t));
 
 	__asm__ volatile("cli");
-	acpi_init(boot_info_v2->acpi_ptr);
-	
 	gdt_init();
-	lapic_init();
 	idt_init();
-
+	acpi_init(boot_info_v2->acpi_ptr);
+	lapic_init();
 	ioapic_init();
 	__asm__ volatile("sti");
 	// drawRect(0, 0, boot_hdr->fb->px_width, boot_hdr->fb->px_height, 0x00000000);
@@ -92,6 +90,7 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	// krnl_printf_reset_y();
 	
 	kprintf("ModernOS (C)\n\n\r");
+	do_static_initializers();
 
 	char *str = kmalloc(1);
 	str = "cat\0";

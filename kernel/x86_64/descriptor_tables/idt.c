@@ -207,7 +207,7 @@ void idt_set_gate(uint8_t vector, uint64_t base, uint16_t sel, uint8_t flags)
  // Optional: Spurious interrupt handler (e.g., vector 255).
  extern void isr_spurious();
 
- extern void uhci_isr80();
+ extern void xhci_isr80();
  extern void xhci_isr_common_stub();
  
  // -----------------------------------------------------------------------------
@@ -287,7 +287,7 @@ void idt_set_gate(uint8_t vector, uint64_t base, uint16_t sel, uint8_t flags)
 
 	 // idt_set_entry(0x50, (uint64_t)uhci_isr80, KERNEL_CS, 0, 0xE, 0, 1);
 	 // Replace the UHCI-specific entry with an xHCI one.
-	 idt_set_entry(0x50, (uint64_t)xhci_isr_common_stub, KERNEL_CS, 0, 0xE, 0, 1);
+	 idt_set_entry(0x50, (uint64_t)xhci_isr80, KERNEL_CS, 0, 0xE, 0, 1);
 
  
 	 // -------------------------------------

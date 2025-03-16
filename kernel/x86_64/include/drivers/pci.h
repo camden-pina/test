@@ -42,6 +42,8 @@ int pci_get_device_count(void);
 // Returns a pointer to the PCI device at the given index (or NULL if out of range).
 pci_device_t* pci_get_device(int index);
 
+uint8_t pci_read8(uint16_t bus, uint16_t slot, uint16_t function, uint8_t offset);
+void pci_write8(uint16_t bus, uint16_t slot, uint16_t function, uint8_t offset, uint8_t data);
 uint16_t pci_read16(uint16_t bus, uint16_t slot, uint16_t function, uint8_t offset);
 void pci_write16(uint16_t bus, uint16_t slot, uint16_t function, uint8_t offset, uint16_t data);
 uint32_t pci_read32(uint16_t bus, uint16_t slot, uint16_t function, uint8_t offset);

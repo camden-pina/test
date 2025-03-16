@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <mm_types.h>
 
 #define get_virt_addr(l4, l3, l2, l1) \
   ((0xFFFFULL << 48) | ((uint64_t)(l4) << 39) | ((uint64_t)(l3) << 30) | \
@@ -33,25 +34,13 @@ typedef volatile int refcount_t;
 #define _refname refcount
 #define _refcount refcount_t _refname
 
-typedef struct page {
-    uint64_t address;             // physical frame
-    uint32_t flags;               // page flags
-    struct {                      // *** valid if PG_HEAD ***
-      uint64_t count : 63;        //   number of pages in the list
-      uint64_t contiguous : 1;    //   whether the list is physically contiguous
-    } head;
-    union {
-      struct page *source;        // source page ref (if PG_COW)
-    };
-    struct pte *entries;          // s-list of pte structs (l)
-    struct page *next;            // next page ref (l)
-    _refcount;
-  } page_t;
 
 uint64_t *early_map_entry(uintptr_t virt_addr, intptr_t phys_addr, uint32_t vm_flags);
 void *early_map_entries(uintptr_t vaddr, uintptr_t paddr, size_t count, uint32_t vm_flags);
 void *alloc_virt_mem(size_t size, uint32_t vm_flags);
 uintptr_t pmm_virt_to_phys(void *vaddr);
 uintptr_t virt_to_phys(void *virt_address);
+
+uintptr_t get_current_pgtable();
 
 #endif

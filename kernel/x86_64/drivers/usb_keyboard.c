@@ -8,7 +8,7 @@ static usb_device_t *keyboard_device = NULL;
 void usb_keyboard_init(void) {
     kprintf("Initializing USB keyboard driver...\n");
     // Find the first enumerated USB keyboard device
-    kprintf("Total USB Devices: %llu", usb_device_count);
+    kprintf("Total USB Devices: %llu\n", usb_device_count);
     for (int i = 0; i < usb_device_count; ++i) {
         kprintf("[%llu]\n", usb_devices[i].type);
         if (usb_devices[i].type == USB_DEVICE_KEYBOARD) {

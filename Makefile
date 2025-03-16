@@ -77,6 +77,7 @@ image: $(TARGET_BOOT) $(TARGET_KERNEL)
 		sudo cp $(TARGET_BOOT) $(MNT_DIR)/EFI/BOOT/$(TARGET_BOOT); \
 		sudo cp $(TARGET_KERNEL) $(MNT_DIR)/ModernOS/$(TARGET_KERNEL); \
 		sudo cp lib/fonts/dfltfont.psf $(MNT_DIR)/ModernOS/fonts; \
+		sudo cp config.ini $(MNT_DIR)/ModernOS/config.ini; \
 		sync; \
 		sudo umount $(MNT_DIR); \
 		sudo losetup -d $$LOOPDEV; \
@@ -102,6 +103,7 @@ ifeq ($(ARCH),x86_64)
   -device usb-kbd,bus=xhci.0 \
   -device usb-tablet,bus=xhci.0 \
   -device e1000,netdev=net0 \
+  -drive if=none,id=usbstick,file=usb.img,format=raw \
   -netdev user,id=net0 \
   -chardev stdio,id=char0,logfile=serial.log,signal=off \
   -serial chardev:char0 \

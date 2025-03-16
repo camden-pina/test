@@ -44,6 +44,9 @@
         "gdt.h": "c",
         "internet": "c",
         "stdbool.h": "c",
-        "msr.h": "c"
+        "msr.h": "c",
+        "vmalloc.h": "c",
+        "mm_types.h": "c",
+        "errno-base.h": "c"
     }
 }

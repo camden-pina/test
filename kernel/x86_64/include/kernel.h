@@ -287,6 +287,20 @@ typedef struct boot_info_v2 {
   uint32_t : 32;                  // reserved
 } boot_info_v2_t;
 
+/**
+ * The LOAD_SECTION macro provides a mechanism to load arbitrary sections of the
+ * kernel image at boot time. The bootloader will go through all symbols declared
+ * with this macro, attempt to load each section and then update the corresponding
+ * struct to hold the physical/virtual address of the section and its length.
+ *
+ * If a section is requested but it has already been loaded in during the normal
+ * elf loading procedure, the struct will point to the virtual address of where it
+ * was mapped to. Otherwise, it will be placed in an unoccupied section of memory
+ * and the struct will contain the physical address of where it was placed. It is
+ * up to the kernel to later map these sections into virtual memory.
+ */
+#define LOAD_SECTION(varname, secname) loaded_section_t __attribute__((section(".load_sections"))) varname = { .name = secname }
+
 //
 // Global Symbols
 //

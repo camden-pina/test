@@ -238,3 +238,7 @@ uintptr_t virt_to_phys(void *virt_address) {
 
     return (entry & PE_FRAME_MASK) | (virt_addr & 0xFFF);
 }
+
+uintptr_t get_current_pgtable() {
+    return __read_cr3() & PE_FRAME_MASK;
+  }

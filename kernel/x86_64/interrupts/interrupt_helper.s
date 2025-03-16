@@ -124,6 +124,7 @@ ISR_NOERR 44
 ISR_NOERR 45
 ISR_NOERR 46
 ISR_NOERR 47
+ISR_NOERR 0x50
 
 # System call interrupt (vector 128)
 ISR_NOERR 128
@@ -164,9 +165,9 @@ uhci_isr_common_stub:
 
     # Load arguments for UHCI-specific handler:
     #   The vector number is at offset 120 + 8 = 128, and the error code is at 120.
-    movq 128(%rsp), %rdi    # First argument: vector number
-    movl 120(%rsp), %esi    # Second argument: error code
-    call uhci_interrupt_handler_main
+    movq 120(%rsp), %rdi    # First argument: vector number
+    movl 128(%rsp), %esi    # Second argument: error code
+    call xhci_interrupt_handler_main
 
     # Restore registers in reverse order
     popq %r15
@@ -192,10 +193,10 @@ uhci_isr_common_stub:
     iretq
 
 # Macro for UHCI ISRs (no error code)
-.macro UHCI_ISR_NOERR num
-    .globl uhci_isr\num
-    .type uhci_isr\num,@function
-uhci_isr\num:
+.macro XHCI_ISR_NOERR num
+    .globl xhci_isr\num
+    .type xhci_isr\num,@function
+xhci_isr\num:
     cli                   # Disable interrupts
     pushq $0              # Push dummy error code
     pushq $\num           # Push interrupt vector number
@@ -203,7 +204,7 @@ uhci_isr\num:
 .endm
 
 # Example: Generate UHCI ISR for vector 0x50 (80 decimal)
-UHCI_ISR_NOERR 80
+XHCI_ISR_NOERR 80
 
 
     .section .text

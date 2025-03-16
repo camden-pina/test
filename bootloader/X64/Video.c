@@ -65,6 +65,7 @@ EFI_STATUS EFIAPI InitializeVideoProtocols() {
 }
 
 EFI_STATUS EFIAPI SelectVideoMode(UINT32 TargetX, UINT32 TargetY, OUT GRAPHICS_MODE_INFO **ModeInfo) {
+  PRINT_INFO("Requested resolution: %dx%d", TargetX, TargetY);
   if (GraphicsDevice == NULL) {
     return EFI_UNSUPPORTED;
   } else if (TargetX == 0 && TargetY == 0) {

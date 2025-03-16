@@ -21,13 +21,31 @@
 #define TRB_TYPE_PORT_STATUS_CHANGE  34
 #define TRB_TYPE_NOOP 8
 #define TRB_TYPE_ENABLE_SLOT         9
+#define TRB_TYPE_DISABLE_SLOT        10
 #define TRB_TYPE_ADDRESS_DEVICE      11
+
+#define XHCI_CMD_RING_SIZE 64
+#define TRB_TYPE_LINK      6
 
 /*
  * Completion Codes
  */
 #define XHCI_COMP_SUCCESS           1
 #define XHCI_COMP_SHORT_PACKET     13
+
+// Base offset for the xHCI Port Status and Control registers.
+// (This value is hardware-specific; adjust as needed.)
+#define XHCI_PORTSC_BASE 0x400
+
+// Stride between successive port registers.
+#define XHCI_PORTSC_STRIDE 0x10
+
+// Macro to compute the offset for a given port number.
+#define PORTSC_OFFSET(port) (XHCI_PORTSC_BASE + ((port) * XHCI_PORTSC_STRIDE))
+
+// Define the bit mask indicating a connected device.
+// (This mask is based on your hardware documentation; adjust as necessary.)
+#define PORTSC_CONNECTED_BIT (1 << 0)
 
 /*
  * xHCI function prototypes

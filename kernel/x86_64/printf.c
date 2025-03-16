@@ -3,6 +3,7 @@
 #include <8250.h>
 #include <stdint.h>
 #include <fmt.h>
+#include <gui/fb.h>
 
 #define BUFFER_SIZE 512
 
@@ -16,11 +17,15 @@ static struct early_kprintf {
   .port = COM1_PORT,
 };
 
+extern __used uint32_t *framebuf_base;
+
 static int early_kprintf_puts(void *arg, const char *s) {
   struct early_kprintf *p = arg;
   // mtx_spin_lock(&p->lock);
   while (*s) {
     serial_port_write_char(p->port, *s);
+    if (framebuf_base != NULL)
+      screen_print_char(*s);
     s++;
   }
   // mtx_spin_unlock(&p->lock);

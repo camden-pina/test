@@ -404,11 +404,8 @@ void* krealloc(void* ptr, size_t sz)
     return newptr;
 }
 
-// Start of your kernel reserved region
-#define KERNEL_RESERVED_BASE 0xFFFFFF8000C00000ULL
-
 // We'll bump allocate from here onward
-static uintptr_t next_pmm_va = KERNEL_RESERVED_BASE;
+static uintptr_t next_pmm_va = KERNEL_RESERVED_VA;
 
 /*
  * pmm_alloc():
@@ -428,7 +425,7 @@ void *pmm_alloc(void)
     uintptr_t vaddr = next_pmm_va;
 
     // e.g. read/write, no exec, no user, not 2MB. Adjust flags as needed.
-    const uint32_t vm_flags = VM_WRITE;  
+    const uint32_t vm_flags = VM_WRITE | VM_READ | VM_NOCACHE;  
     early_map_entries(vaddr, paddr, 1, vm_flags);
 
     // Clear the newly mapped page

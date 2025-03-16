@@ -78,6 +78,16 @@ typedef struct __attribute__((packed)) xhci_erst_entry {
     uint32_t reserved;
 } xhci_erst_entry_t;
 
+// Define TRB types and success code.
+#define TRB_TYPE_SETUP   2
+#define TRB_TYPE_DATA    3
+#define TRB_TYPE_STATUS  4
+#define TRB_TYPE_TRANSFER_EVENT  32  // Example value; adjust per your spec
+#define XHCI_COMP_SUCCESS 1
+
+// Size of the control transfer ring.
+#define XHCI_CTRL_RING_SIZE 16
+
 typedef struct xhci_state {
     volatile uint32_t *db_regs;   // Doorbell registers base
     volatile uint32_t *run_regs;  // Runtime registers base
@@ -102,6 +112,10 @@ typedef struct xhci_state {
 
     // The maximum number of slots the controller supports
     uint8_t  max_slots;
+
+    xhci_trb_t *ctrl_ring;
+    uint16_t    ctrl_ring_index;
+    uint8_t     ctrl_cycle;
 } xhci_state_t;
 
 /*

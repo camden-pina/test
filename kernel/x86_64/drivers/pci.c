@@ -144,6 +144,22 @@ void pci_config_write(uint16_t bus, uint16_t slot, uint16_t func, uint8_t offset
     }
 }
 
+uint8_t pci_read8(uint16_t bus, uint16_t slot, uint16_t function, uint8_t offset) {
+    uint8_t aligned_offset = offset & 0xFC;  // align to 32-bit boundary
+    uint32_t value = pci_config_read(bus, slot, function, aligned_offset);
+    int shift = (offset & 0x3) * 8;          // offset within the dword (0,1,2,3) * 8 bits
+    return (uint8_t)((value >> shift) & 0xFF);
+}
+
+void pci_write8(uint16_t bus, uint16_t slot, uint16_t function, uint8_t offset, uint8_t data) {
+    uint8_t aligned_offset = offset & 0xFC;  // align to 32-bit boundary
+    uint32_t oldval = pci_config_read(bus, slot, function, aligned_offset);
+    int shift = (offset & 0x3) * 8;          // determine which byte to update
+    uint32_t mask = 0xFF << shift;           // mask for the target byte
+    uint32_t newval = (oldval & ~mask) | ((uint32_t)data << shift);
+    pci_config_write(bus, slot, function, aligned_offset, newval);
+}
+
 uint16_t pci_read16(uint16_t bus, uint16_t slot, uint16_t function, uint8_t offset) {
     uint8_t aligned_offset = offset & 0xFC;
     uint32_t value = pci_config_read(bus, slot, function, aligned_offset);
