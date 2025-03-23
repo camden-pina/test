@@ -1,5 +1,6 @@
 #include <string.h>
 #include <panic.h>
+#include <mm/pmm.h>
 
 int memcmp(const void *str1, const void *str2, size_t count) {
     const unsigned char *s1 = str1;
@@ -103,3 +104,65 @@ int memcmp(const void *str1, const void *str2, size_t count) {
     *d = '\0';
     return dest;
   }
+
+  char *strdup(const char *s) {
+    if (!s)
+        return NULL;
+
+    size_t len = strlen(s);
+    char *dup = kmalloc(len + 1);
+    if (!dup)
+        return NULL;
+
+    memcpy(dup, s, len + 1);
+    return dup;
+}
+
+/*
+ * strcat - concatenate two strings
+ *
+ * Appends the src string to the dest string, overwriting the terminating null
+ * byte ('\0') at the end of dest, and then adds a terminating null byte.
+ *
+ * Parameters:
+ *   dest - a pointer to the destination string buffer (must be large enough)
+ *   src  - a pointer to the source string to append
+ *
+ * Returns:
+ *   The pointer to the destination string dest.
+ */
+char *strcat(char *dest, const char *src) {
+  char *d = dest;
+  // Move d to the end of the destination string.
+  while (*d) {
+      d++;
+  }
+  // Copy src to the end of dest.
+  while (*src) {
+      *d++ = *src++;
+  }
+  // Append null terminator.
+  *d = '\0';
+  return dest;
+}
+
+char *strncat(char *dest, const char *src, size_t n) {
+  char *d = dest;
+  
+  // Move d to the end of the destination string.
+  while (*d != '\0') {
+      d++;
+  }
+  
+  // Append up to n characters from src.
+  size_t i = 0;
+  while (i < n && src[i] != '\0') {
+      d[i] = src[i];
+      i++;
+  }
+  
+  // Null terminate the destination string.
+  d[i] = '\0';
+  
+  return dest;
+}

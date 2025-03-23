@@ -5,8 +5,65 @@
 #include <printf.h>
 #include <panic.h>
 #include <acpi/tables.h>  // Needed for MADT parsing when checking for overrides
+#include <cpu.h>
+#include <queue.h>
+#include <mm/vmem.h>
+#include <mm/pmm.h>
+#include <init.h>
+
+#define APIC_BASE_PA 0xFEE00000
+
+#define ICR_LOW_REG_MASK     0xFFF99000
+#define ICR_HIGH_REG_MASK    0x00FFFFFF
+
+#define ICR_VECTOR_SHIFT     0
+#define ICR_DELIV_MODE_SHIFT 8
+#define ICR_DEST_MODE_SHIFT  10
+#define ICR_LEVEL_SHIFT      14
+#define ICR_TRIG_MODE_SHIFT  15
+#define ICR_DEST_SHRT_SHIFT  18
+#define ICR_DEST_SHIFT       24
+
+typedef enum apic_reg {
+  APIC_ID            = 0x020,
+  APIC_VERSION       = 0x030,
+  APIC_TPR           = 0x080,
+  APIC_APR           = 0x090,
+  APIC_PPR           = 0x0A0,
+  APIC_EOI           = 0x0B0,
+  APIC_RRD           = 0x0C0,
+  APIC_LDR           = 0x0D0,
+  APIC_DFR           = 0x0E0,
+  APIC_SVR           = 0x0F0,
+  APIC_ERROR         = 0x280,
+  APIC_LVT_CMCI      = 0x2F0,
+  APIC_ICR_LOW       = 0x300,
+  APIC_ICR_HIGH      = 0x310,
+  APIC_LVT_TIMER     = 0x320,
+  APIC_LVT_LINT0     = 0x350,
+  APIC_LVT_LINT1     = 0x360,
+  APIC_LVT_ERROR     = 0x370,
+  APIC_INITIAL_COUNT = 0x380,
+  APIC_CURRENT_COUNT = 0x390,
+  APIC_DIVIDE_CONFIG = 0x3E0,
+} apic_reg_t;
+
+struct apic_device {
+    uint8_t id;
+    uint8_t : 8;
+    uint16_t : 16;
+    uintptr_t phys_addr;
+    uintptr_t address;
+    LIST_ENTRY(struct apic_device) list;
+  };
+
+static uint32_t apic_clock; // ticks per second
 
 static uint32_t *local_apic_base = NULL;  // Mapped address for Local APIC registers
+
+uintptr_t apic_base = APIC_BASE_PA;
+static size_t num_apics = 0;
+static LIST_HEAD(struct apic_device) apics;
 
 // Low-level functions to read and write Local APIC registers.
 inline void lapic_write(uint32_t reg_offset, uint32_t value) {
@@ -59,6 +116,50 @@ static void disable_pic(void) {
     outb(PIC2_DATA, 0xFF);
     kprintf("PIC remapped and masked (all IRQs off).\n");
 }
+
+static inline apic_reg_lvt_timer_t apic_read_timer() {
+    apic_reg_lvt_timer_t timer = { .raw = lapic_read(APIC_LVT_TIMER) };
+    return timer;
+  }
+
+static inline void apic_write_timer(apic_reg_lvt_timer_t timer) {
+    lapic_write(APIC_LVT_TIMER, timer.raw);
+  }
+
+void apic_udelay(uint64_t us) {
+    apic_reg_lvt_timer_t timer = apic_read_timer();
+    timer.timer_mode = APIC_ONE_SHOT;
+    timer.mask = APIC_MASK;
+    apic_write_timer(timer);
+    while (us > 0) {
+      uint32_t val = min(us, US_PER_SEC);
+      uint32_t count = apic_clock / (US_PER_SEC / val);
+      lapic_write(APIC_INITIAL_COUNT, count);
+  
+      while (lapic_read(APIC_CURRENT_COUNT) != 0) {
+        cpu_pause();
+      }
+      us -= val;
+    }
+  }
+  
+  void apic_mdelay(uint64_t ms) {
+    apic_udelay(ms * 1000);
+  }
+
+  static inline volatile uint32_t *apic_reg_ptr(apic_reg_t reg) {
+    uintptr_t addr = apic_base + reg;
+    volatile uint32_t *ptr = (uint32_t *) addr;
+    return ptr;
+  }
+
+  void poll_icr_status() {
+    volatile uint32_t *low = apic_reg_ptr(APIC_ICR_LOW);
+    while (apic_icr_status(*low)) {
+      // if icr is pending poll until it finishes
+      cpu_pause();
+    }
+  }
 
 void lapic_init(void) {
     kprintf("Initializing Local APIC...\n");
@@ -118,3 +219,54 @@ void apic_send_eoi_if_necessary(uint8_t vector) {
     }
     kprintf("check4\n");
 }
+
+struct apic_device *get_apic_by_id(uint8_t id) {
+    struct apic_device *apic;
+    LIST_FOREACH(apic, &apics, list) {
+      if (apic->id == id) {
+        return apic;
+      }
+    }
+    return NULL;
+  }
+
+void remap_apic_registers(void *data) {
+    apic_base = vmap_phys(APIC_BASE_PA, 0, PAGE_SIZE, VM_WRITE | VM_NOCACHE, "apic");
+  
+    struct apic_device *apic;
+    LIST_FOREACH(apic, &apics, list) {
+      apic->address = apic_base;
+    }
+  }
+
+void register_apic(uint8_t id) {
+    if (get_apic_by_id(id) != NULL) {
+      return;
+    }
+  
+    kprintf("registering APIC[%d]\n", id);
+    apic_reg_id_t id_reg = { .raw = lapic_read(APIC_ID) };
+    if (id == id_reg.id) {
+      register_init_address_space_callback(remap_apic_registers, NULL);
+    }
+  
+    struct apic_device *apic = kmalloc(sizeof(struct apic_device));
+    apic->id = id;
+    apic->phys_addr = APIC_BASE_PA;
+    apic->address = APIC_BASE_PA;
+  
+    num_apics++;
+    LIST_ADD(&apics, apic, list);
+  }
+
+int apic_write_icr(uint32_t low, uint8_t dest_id) {
+    uint64_t rflags = cpu_save_clear_interrupts();
+    uint32_t icr_high = lapic_read(APIC_ICR_HIGH) & ICR_HIGH_REG_MASK;
+    icr_high |= dest_id << 24;
+    lapic_write(APIC_ICR_HIGH, icr_high);
+  
+    lapic_write(APIC_ICR_LOW, low);
+    poll_icr_status();
+    cpu_restore_interrupts(rflags);
+    return 0;
+  }

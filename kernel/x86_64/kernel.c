@@ -22,6 +22,10 @@
 #include <mm/pgtable.h>
 #include <msi.h>
 #include <init.h>
+#include <workqueue.h>
+#include <thread.h>
+#include <mm/vmem.h>
+#include <smpboot.h>
 
 static unsigned char SCAN_CODE_MAPPING[] = "\x00""\x1B""1234567890-=""\x08""\tqwertyuiop[]\n\0asdfghjkl;'`\0\\zxcvbnm,./\0*\0 \0\0\0\0\0\0\0\0\0\0\0\0\0-456+1230.\0\0\0\0\0";
 
@@ -70,6 +74,8 @@ static inline uint8_t serial_inb(uint16_t port) {
 
 boot_info_v2_t __boot_data *boot_info_v2;
 
+bool is_smp_enabled = true;
+
 void kern_main(boot_info_v2_t* boot_hdr)
 {
 	serial_port_init(COM1_PORT);
@@ -77,6 +83,16 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	kprintf_early_init();
 
 	pmm_init(boot_info_v2->mem_map.map, boot_info_v2->mem_map.size, sizeof(memory_map_entry_t));
+	vmem_init();
+	// init_address_space();
+	// proc0_init();
+	// test_thread(NULL);
+	// create_kernel_thread(test_thread, 0, "test_thread");
+	do_static_initializers();
+	kprintf_init();
+
+	// init_default_mappings();
+	vm_print_address_space();
 
 	__asm__ volatile("cli");
 	gdt_init();
@@ -86,15 +102,13 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	ioapic_init();
 	__asm__ volatile("sti");
 	// drawRect(0, 0, boot_hdr->fb->px_width, boot_hdr->fb->px_height, 0x00000000);
+
 	// krnl_printf_reset_x();
 	// krnl_printf_reset_y();
 	
 	kprintf("ModernOS (C)\n\n\r");
-	do_static_initializers();
 
-	char *str = kmalloc(1);
-	str = "cat\0";
-	kprintf("%s", str);
+	smp_init();
 
 	pci_init();
 	//init_device_interrupts();
@@ -104,7 +118,16 @@ void kern_main(boot_info_v2_t* boot_hdr)
 
 	kprintf("Copyright (C) Ideal Technologies Inc.\n\r");
 
+	thread_yield();
+	vm_print_address_space();
 	while (1)
 	{// usb_keyboard_poll();
+		// process_workqueue();
+	}
+}
+
+__used void ap_main() {
+	while (1) {
+
 	}
 }

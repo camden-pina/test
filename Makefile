@@ -96,6 +96,7 @@ ifeq ($(ARCH),x86_64)
 	qemu-system-x86_64 \
   -cpu qemu64 \
   -machine q35 \
+  -smp 2 \
   -m 2G \
   -bios "$(OVMF)" \
   -drive file="$(DISK_IMG)",if=ide \
@@ -107,6 +108,7 @@ ifeq ($(ARCH),x86_64)
   -netdev user,id=net0 \
   -chardev stdio,id=char0,logfile=serial.log,signal=off \
   -serial chardev:char0 \
+  -d int,cpu_reset \
   -no-reboot
 endif
 
@@ -175,6 +177,9 @@ umount-img:
 		sudo losetup -d $$LOOPDEV; \
 		rm -f $(LOOPFILE); \
 		echo "Disk image unmounted."'
+
+export:
+	$(shell export PATH = home/camdenpina/Documents/test/toolchain/opt/cross/bin:$(PATH))
 
 ################################################################################
 # Clean Up Build Artifacts

@@ -5,6 +5,7 @@
 // Enhanced by ChatGPT
 //
 
+/*
 #include <gui/font8x8_basic.h>
 #include <mm/pmm.h>
 #include <string.h>
@@ -212,3 +213,5 @@ static void screen_init() {
   output_queue_len = 0;
 }
 STATIC_INIT(screen_init);
+
+*/

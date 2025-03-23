@@ -143,6 +143,8 @@ typedef struct register16 {
 
 #define __malloc_like __attribute((malloc))
 
+#define static_assert(expr) _Static_assert(expr, "")
+
 /**
  * The STATIC_INIT macro provides a way to register initializer functions that are invoked
  * at the end of the 'static' phase. These functions may only use the memory, time, and
@@ -311,13 +313,28 @@ extern bool is_smp_enabled;
 extern bool is_debug_enabled;
 
 // linker provided symbols
-extern uintptr_t __kernel_address;
-extern uintptr_t __kernel_virtual_offset;
-extern uintptr_t __kernel_code_start;
-extern uintptr_t __kernel_code_end;
-extern uintptr_t __kernel_data_end;
+/*
+extern const uintptr_t __kernel_address;
+extern const uintptr_t __kernel_virtual_offset;
+extern const uintptr_t __kernel_code_start;
+extern const uintptr_t __kernel_code_end;
+extern const uintptr_t __kernel_data_end;
+*/
+
+#define initref(objptr) (ref_init(&(objptr)->_refname))
+#define newref(objptr) ({ ref_init(&(objptr)->_refname); objptr; })
+#define getref(objptr) ({ if (__expect_true((objptr) != NULL)) ref_get(&(objptr)->_refname); objptr; })
+#define moveref(objref) ({ typeof(objref) __tmp = (objref); (objref) = NULL; __tmp; })
+
+extern char __kernel_address[];
+extern char __kernel_virtual_offset[];
+extern char __kernel_code_start[];
+extern char __kernel_code_end[];
+extern char __kernel_data_end[];
 
 extern boot_info_v2_t *boot_info_v2;
+
+extern bool is_smp_enabled;
 
 void kern_main(boot_info_v2_t* header);
 

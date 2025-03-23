@@ -24,7 +24,7 @@
 #define PE_DIRTY          (1ULL << 6)
 #define PE_SIZE           (1ULL << 7)
 #define PE_GLOBAL         (1ULL << 8)
-#define PE_NO_EXECUTE     (1ULL << 63)
+#define PE_NO_EXECUTE     0x0060 // (1ULL << 63)
 
 #define PE_FLAGS_MASK 0xFFF
 #define PE_FRAME_MASK 0xFFFFFFFFFFFFF000
@@ -37,10 +37,11 @@ typedef volatile int refcount_t;
 
 uint64_t *early_map_entry(uintptr_t virt_addr, intptr_t phys_addr, uint32_t vm_flags);
 void *early_map_entries(uintptr_t vaddr, uintptr_t paddr, size_t count, uint32_t vm_flags);
-void *alloc_virt_mem(size_t size, uint32_t vm_flags);
 uintptr_t pmm_virt_to_phys(void *vaddr);
 uintptr_t virt_to_phys(void *virt_address);
 
 uintptr_t get_current_pgtable();
+void flags_to_str_r(uint16_t flags, char *buf, size_t bufsize);
+uint16_t vm_flags_to_pe_flags(uint32_t vm_flags);
 
 #endif

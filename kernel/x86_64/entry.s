@@ -1,6 +1,6 @@
 .section .text
 .global entry
-.global ap_entry
+.extern ap_entry
 .extern kern_main
 
 .set PAGE_SIZE, 0x1000
@@ -43,6 +43,20 @@ entry:
   hlt
   jmp .hang1  # Hang
 
+.text
+.globl ap_entry
+ap_entry:
+    mov    %rsp, %rbp
+    push   %rbp
+
+    cld
+    cli
+    call   ap_main     # Call the kernel
+
+.hang:
+    hlt
+    jmp    .hang       # Hang forever
+.ap_entry_end:
 
 # =======================
 #         Data

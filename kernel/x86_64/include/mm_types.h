@@ -22,9 +22,9 @@
 #define PAGES_TO_SIZE(pages) ((pages) << PAGE_SHIFT)
 #define SIZE_TO_PAGES(size) (((size) >> PAGE_SHIFT) + (((size) & 0xFFF) ? 1 : 0))
 
+#define ALIGN_UP(x, align) (((x) + ((align) - 1)) & ~((align) - 1))
+
 struct address_space;
-struct frame_allocator;
-struct rb_tree;
 struct page;
 struct pte;
 struct vm_mapping;
@@ -48,7 +48,6 @@ struct vm_file;
         uint64_t contiguous : 1;    //   whether the list is physically contiguous
     } head;
     union {
-        struct frame_allocator *fa; // owning frame allocator (if PG_OWNING)
         struct page *source;        // source page ref (if PG_COW)
     };
     struct pte *entries;          // s-list of pte structs (l)
@@ -135,7 +134,7 @@ enum vm_type {
 typedef struct vm_mapping {
   enum vm_type type;        // vm type
   uint32_t flags;           // vm flags
-  str_t name;               // name of the mapping
+  char *name;               // name of the mapping
 
   uint64_t address;         // virtual address (start of the mapped region)
   size_t size;              // mapping size
@@ -148,7 +147,7 @@ typedef struct vm_mapping {
     struct vm_file *vm_file;// VM_TYPE_FILE
   };
 
-  LIST_ENTRY(struct vm_mapping) vm_list; // entry in list of vm mappings
+  LIST_ENTRY(struct vm_mapping) list; // entry in list of vm mappings
 } vm_mapping_t;
 
 /////////////
@@ -186,6 +185,9 @@ typedef struct vm_mapping {
 #define VM_MAP_MASK   0xFE0  // mask of mapping flags
 #define VM_FLAGS_MASK 0xFFFF // mask of public flags
 
+/* Define a new VM flag for overwriting mapping flags */
+#define VM_OVERWRITE 0x10000000
+
 static inline size_t vm_flags_to_size(uint32_t vm_flags) {
   if (vm_flags & VM_HUGE_2MB) {
     return PAGE_SIZE_2MB;
@@ -219,6 +221,7 @@ typedef struct vm_desc {
 
 #define FRAMEBUFFER_VA      0xFFFFBFFF00000000ULL
 #define KERNEL_HEAP_VA      0xFFFFFF8000400000ULL
+#define IOREMAP_BASE        0xFFFFFF8000A00000ULL
 #define KERNEL_RESERVED_VA  0xFFFFFF8000C00000ULL
 
 #define KERNEL_HEAP_SIZE   (6 * SIZE_1MB)

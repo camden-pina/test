@@ -14,6 +14,20 @@ typedef unsigned char acpi_status_t;
 #define ACPI_MEMORY    2
 #define ACPI_NO_TABLE  3
 
+#define ACPI_MADT_TYPE_LOCAL_APIC    0
+#define ACPI_MADT_TYPE_IO_APIC       1
+#define ACPI_MADT_TYPE_INT_SRC       2
+#define ACPI_MADT_TYPE_NMI_INT_SRC   3
+#define ACPI_MADT_TYPE_LAPIC_NMI     4
+#define ACPI_MADT_TYPE_APIC_OVERRIDE 5
+
+#define ACPI_MADT_FLAG_PCAT_COMPAT     (1 << 0)
+
+#define ACPI_MADT_APIC_FLAG_ENABLED    (1 << 0)
+#define ACPI_MADT_APIC_FLAG_ONLINE_CAP (1 << 1)
+
+extern uint16_t total_apic_count;
+
 // Global ACPI table pointers shared across modules.
 extern struct _acpi_xsdt_t* xsdt;
 extern struct _acpi_fadt_t* fadt;

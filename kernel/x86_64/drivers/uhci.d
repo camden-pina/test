@@ -1,7 +1,7 @@
 drivers/uhci.o: drivers/uhci.c include/drivers/uhci.h \
  include/drivers/usb.h include/drivers/pci.h include/drivers/uhci_td.h \
  include/printf.h include/kernel.h include/panic.h include/io.h \
- include/mm/pmm.h include/queue.h include/mm/bitmap.h include/string.h \
- include/mm_types.h include/str.h include/interrupts/ioapic.h \
- include/interrupts/lapic.h include/descriptor_tables/idt.h \
- include/descriptor_tables/isr.h include/descriptor_tables/../kernel.h
+ include/mm/pmm.h include/queue.h include/mm_types.h include/str.h \
+ include/string.h include/interrupts/ioapic.h include/interrupts/lapic.h \
+ include/descriptor_tables/idt.h include/descriptor_tables/isr.h \
+ include/descriptor_tables/../kernel.h

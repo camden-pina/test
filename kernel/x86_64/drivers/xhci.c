@@ -14,6 +14,7 @@
 #include <io.h>
 #include <atomics.h>
 #include <timer.h>
+#include <mm/vmem.h>
 
 atomic_bool awaiting_cmd = ATOMIC_VAR_INIT(true);
 static volatile uint8_t last_cmd_type      = 0;
@@ -102,13 +103,13 @@ static void xhci_ring_doorbell(usb_host_controller_t *hc, uint8_t dbIndex, uint8
 static int xhci_configure_event_ring(usb_host_controller_t *hc) {
     xhci_state_t *x = &hc->x.xhci;
     kprintf("[ERCFG] xhci_configure_event_ring => begin\n");
-    x->event_ring = usb_alloc_page();
+    x->event_ring = dma_alloc_coherent(PAGE_SIZE, NULL); // vmalloc(PAGE_SIZE, VM_NOCACHE | VM_READ | VM_WRITE); // usb_alloc_page();
     if (!x->event_ring)
         return -1;
     memset(x->event_ring, 0, PAGE_SIZE);
     x->evt_ring_index = 0;
     x->evt_cycle = 1;
-    x->erst = (xhci_erst_entry_t *)usb_alloc_page();
+    x->erst = (xhci_erst_entry_t *)dma_alloc_coherent(PAGE_SIZE, NULL); // vmalloc(PAGE_SIZE, VM_NOCACHE | VM_READ | VM_WRITE); // usb_alloc_page();
     if (!x->erst)
         return -1;
     memset(x->erst, 0, PAGE_SIZE);
@@ -126,12 +127,23 @@ static int xhci_configure_event_ring(usb_host_controller_t *hc) {
     if (!ir_base)
         return -1;
     ir_base[0] &= ~(1 << 1);
+    ir_base[0] |= 1 << 0; // clear IP
+ir_base[0] |= 1 << 1; // enable IE
+
     MEMORY_BARRIER();
     for (volatile int i = 0; i < 500; i++);
     ir_base[1] = 0;
     ir_base[2] = 1;
-    ir_base[4] = (uint32_t)(erst_phys & 0xFFFFFFFFULL);
+
+// Check if the upper 32 bits are non-zero, which means the address is not within the low 4GB.
+if ((erst_phys >> 32) != 0) {
+    panic("Error: ERST physical address 0x%lx is above 4GB. 32-bit addressing is required.\n", erst_phys);
+    // Option 1: Return an error
+    // Option 2: Alternatively, attempt to reallocate from a low-memory pool if possible.
+}
+
     ir_base[5] = (uint32_t)(erst_phys >> 32);
+    ir_base[4] = (uint32_t)(erst_phys & 0xFFFFFFFFULL);
     MEMORY_BARRIER();
     for (volatile int i = 0; i < 500; i++);
     uint64_t aligned_erdp = ring_phys & ~0xFULL;
@@ -260,7 +272,7 @@ static inline void set_ep0_context(uint32_t *ep0_ctx, uint16_t max_packet_size) 
 
 static int xhci_address_device(usb_host_controller_t *hc, uint8_t slot_id, uint8_t port_id, uint8_t speed) {
     xhci_state_t *x = &hc->x.xhci;
-    void *ictx_virt = pmm_alloc();
+    void *ictx_virt = dma_alloc_coherent(PAGE_SIZE, NULL); // vmalloc(PAGE_SIZE, VM_NOCACHE | VM_READ | VM_WRITE); // pmm_alloc();
     if (!ictx_virt)
         return -1;
     memset(ictx_virt, 0, PAGE_SIZE);
@@ -297,6 +309,8 @@ void fix_link_trb_cycle_bit(xhci_trb_t *link_trb, uint64_t ring_phys) {
     link_trb->field[3] = (TRB_TYPE_LINK << 10) | (1 << 1); // TC = 1, Cycle bit cleared
 }
 
+#include <thread.h>
+
 int init_xhci_controller(pci_device_t *pci_dev) {
     kprintf("======== ENTER init_xhci_controller() ========\n");
     kprintf("init_xhci_controller: bus=%02x slot=%02x func=%x\n",
@@ -324,10 +338,11 @@ int init_xhci_controller(pci_device_t *pci_dev) {
     uintptr_t base_phys = pci_resource_start(pci_dev, bar_index);
     size_t mmio_size    = pci_resource_len(pci_dev, bar_index);
     size_t num_pages    = (mmio_size + PAGE_SIZE - 1) / PAGE_SIZE;
-    early_map_entries(FIXED_VIRT_BASE, base_phys, num_pages, (VM_READ | VM_WRITE | VM_NOCACHE));
-    volatile uint32_t *cap_regs = (volatile uint32_t *)FIXED_VIRT_BASE;
-    kprintf("[DBG] xHCI base_phys=0x%lx, mmio_size=0x%lx => mapped @0x%lx\n",
-            (unsigned long)base_phys, (unsigned long)mmio_size, (unsigned long)FIXED_VIRT_BASE);
+    kprintf("[DBG] xHCI base_phys=0x%lx, mmio_size=0x%lx\n",
+            (unsigned long)base_phys, (unsigned long)mmio_size); // FIXED_VIRT_BASE);
+    uintptr_t bar_virt = vmap_phys(base_phys, 0, num_pages * PAGE_SIZE, VM_READ | VM_WRITE | VM_NOCACHE, "xhci mmio");
+    // early_map_entries(FIXED_VIRT_BASE, base_phys, num_pages, (VM_READ | VM_WRITE | VM_NOCACHE));
+    volatile uint32_t *cap_regs = (volatile uint32_t *)bar_virt; // FIXED_VIRT_BASE;
     uint8_t cap_length = (uint8_t)(cap_regs[0] & 0xFF);
     volatile uint32_t *op_regs = cap_regs + (cap_length / 4);
     #define USBSTS_REG op_regs[1]
@@ -390,7 +405,7 @@ int init_xhci_controller(pci_device_t *pci_dev) {
     uint8_t max_slots = (uint8_t)(hcsp1 & 0xFF);
     op_regs[0x38/4] = max_slots;
     kprintf("[DBG] CONFIG => MaxSlotsEn=%u => readback=0x%08x\n", max_slots, op_regs[0x38/4]);
-    void *dcbaa_page = pmm_alloc();
+    void *dcbaa_page = dma_alloc_coherent(PAGE_SIZE, NULL); // kmalloc(PAGE_SIZE); vmalloc(PAGE_SIZE, VM_NOCACHE | VM_READ | VM_WRITE); // pmm_alloc();
     if (!dcbaa_page)
         return -1;
     memset(dcbaa_page, 0, PAGE_SIZE);
@@ -398,7 +413,7 @@ int init_xhci_controller(pci_device_t *pci_dev) {
     uint64_t dcbaa_phys = virt_to_phys(dcbaa_page);
     op_regs[0x30/4] = (uint32_t)(dcbaa_phys & 0xFFFFFFFFULL);
     op_regs[0x34/4] = (uint32_t)(dcbaa_phys >> 32);
-    void *cmd_page = pmm_alloc();
+    void *cmd_page = dma_alloc_coherent(PAGE_SIZE, NULL); // vmalloc(PAGE_SIZE, VM_NOCACHE | VM_READ | VM_WRITE); // pmm_alloc();
     if (!cmd_page)
         return -1;
     memset(cmd_page, 0, PAGE_SIZE);
@@ -470,13 +485,7 @@ int init_xhci_controller(pci_device_t *pci_dev) {
             usb_process_device_connect(hc, port, slot);
         }
     }
-    int ret = test_xhci_noop(hc);
-    kprintf("[DBG] test_xhci_enable_slot => ret=%d\n", ret);
-    if (ret < 0) {
-        kprintf("[ERR] EnableSlot cmd => fail => ret=%d\n", ret);
-    }
-    
-    ret = test_xhci_enable_slot(hc); // this is where the interrupt never fires again
+    int ret = test_xhci_enable_slot(hc); // this is where the interrupt never fires again
     kprintf("[DBG] test_xhci_enable_slot => ret=%d\n", ret);
     if (ret < 0) {
         kprintf("[ERR] EnableSlot cmd => fail => ret=%d\n", ret);
@@ -673,6 +682,8 @@ void xhci_interrupt_handler_main(uint64_t vector, uint32_t error) {
     }
 
     kprintf("[ISR] ISR => processed %d events => EOI\n", count);
+    __asm__ ("sti");
+    MEMORY_BARRIER();
     kprintf("awaiting_cmd: %llu\n", awaiting_cmd);
     apic_send_eoi_if_necessary((uint8_t)vector);
 }
@@ -680,7 +691,7 @@ void xhci_interrupt_handler_main(uint64_t vector, uint32_t error) {
 static int xhci_submit_transfer(usb_host_controller_t *hc, uint8_t dev_addr, uint8_t endpoint, xhci_trb_t *trbs, int trb_count) {
     xhci_state_t *x = &hc->x.xhci;
     if (!x->ctrl_ring) {
-        x->ctrl_ring = (xhci_trb_t *)pmm_alloc();
+        x->ctrl_ring = (xhci_trb_t *)dma_alloc_coherent(PAGE_SIZE, NULL); // vmalloc(PAGE_SIZE, VM_NOCACHE | VM_READ | VM_WRITE); // pmm_alloc();
         if (!x->ctrl_ring)
             return -1;
         memset(x->ctrl_ring, 0, PAGE_SIZE);

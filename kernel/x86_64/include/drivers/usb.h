@@ -60,8 +60,7 @@ typedef struct uhci_qh {
 /*
  * xHCI Data Structures (simplified for demonstration)
  */
-#define XHCI_MAX_SLOTS          256
-#define XHCI_CMD_RING_SIZE      256
+#define XHCI_MAX_SLOTS          64
 #define XHCI_EVENT_RING_SIZE    256
 
 /* The generic xHCI TRB (Transfer Request Block) */

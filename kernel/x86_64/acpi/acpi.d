@@ -5,4 +5,4 @@ acpi/acpi.o: acpi/acpi.c include/acpi/acpi.h include/kernel.h \
  lib/lai/include/lai/error.h lib/lai/include/lai/host.h \
  lib/lai/include/lai/internal-exec.h lib/lai/include/lai/internal-util.h \
  lib/lai/include/lai/internal-ns.h include/panic.h include/mm/pmm.h \
- include/queue.h include/mm/bitmap.h include/mm_types.h include/str.h
+ include/queue.h include/mm_types.h include/str.h

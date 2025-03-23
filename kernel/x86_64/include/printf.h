@@ -6,6 +6,7 @@
 #include <stdarg.h>
 
 void kprintf_early_init();
+void kprintf_init();
 void kprintf_kputs(const char *str);
 
 /*
@@ -112,5 +113,21 @@ void kprintf_kputs(const char *str);
  */
 void kprintf(const char *format, ...);
 void kvfprintf(const char *format, va_list args);
+/*
+ * snprintf: Writes formatted output to a string.
+ *
+ * Parameters:
+ *   str    - Destination buffer.
+ *   size   - Size of the destination buffer.
+ *   format - Format string.
+ *   ...    - Additional arguments.
+ *
+ * Returns:
+ *   The number of characters that would have been written (not including the terminating NUL)
+ *   if enough space had been available. In case of error, a negative value is returned.
+ *
+ * This is a minimal implementation that leverages fmt_format().
+ */
+int ksnprintf(char *str, size_t size, const char *format, ...);
 
 #endif

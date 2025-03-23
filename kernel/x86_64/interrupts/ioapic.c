@@ -5,12 +5,19 @@
 #include <printf.h>
 #include <panic.h>
 #include <io.h>
+#include <cpu.h>
+#include <interrupts/lapic.h>
 
 // Global pointers for accessing the I/O APIC registers.
 static volatile uint32_t *IOREGSEL = NULL;
 static volatile uint32_t *IOREGWIN = NULL;
 
 #define IOREDTBL    0x10   // I/O Redirection Table register offset base
+
+uint16_t enabled_apic_count = 0;
+uint16_t online_capable_apic_count = 0;
+uint16_t total_apic_count = 0;
+uint8_t apic_id_map[MAX_CPUS];
 
 // Parse the MADT to locate and map the I/O APIC registers.
 bool ioapic_init(void) {
@@ -37,6 +44,18 @@ bool ioapic_init(void) {
             return false;
         }
         switch(header->type) {
+            case 0x00: { // Processor Local APIC
+                apic_local_t *local_apic = (void *)entry;
+                if ((local_apic->flags & ACPI_MADT_APIC_FLAG_ENABLED) != 0) {
+                    enabled_apic_count++;
+                } else if ((local_apic->flags & ACPI_MADT_APIC_FLAG_ONLINE_CAP) != 0) {
+                    online_capable_apic_count++;
+                }
+                kassert(total_apic_count < MAX_CPUS);
+                apic_id_map[total_apic_count++] = local_apic->apicID;
+                register_apic(local_apic->apicID);
+                break;
+            }
             case 0x01: { // I/O APIC entry
                 apic_io_t *ioapic = (apic_io_t *)entry;
                 kprintf(" MADT: I/O APIC ID=%u, Addr=0x%x, GSI Base=%u\n",

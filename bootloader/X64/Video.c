@@ -179,6 +179,16 @@ VOID EFIAPI DrawSquare(UINT32 X, UINT32 Y, UINT32 Width, UINT32 Height, UINT32 C
   }
 }
 
+EFI_STATUS EFIAPI GetFramebufferPitch(OUT UINT32 *Pitch) {
+  if (GraphicsDevice == NULL || Pitch == NULL) {
+      return EFI_INVALID_PARAMETER;
+  }
+  *Pitch = GraphicsDevice->Mode->Info->PixelsPerScanLine;
+  PRINT_INFO("PixelsPerScanLine = %u\n", GraphicsDevice->Mode->Info->PixelsPerScanLine);
+  return EFI_SUCCESS;
+}
+
+
 //
 // Debugging
 //

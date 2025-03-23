@@ -47,6 +47,20 @@
         "msr.h": "c",
         "vmalloc.h": "c",
         "mm_types.h": "c",
-        "errno-base.h": "c"
+        "errno-base.h": "c",
+        "thread.h": "c",
+        "queue.h": "c",
+        "vmem.h": "c",
+        "bitmap.h": "c",
+        "smpboot.h": "c",
+        "buddy.h": "c",
+        "limits": "c",
+        "*.def": "c",
+        "*.inc": "c",
+        "executor": "c",
+        "io_context": "c",
+        "rope": "c",
+        "chrono": "c",
+        "future": "c"
     }
 }

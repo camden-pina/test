@@ -3629,6 +3629,7 @@ lai_api_error_t lai_populate(lai_nsnode_t *parent, struct lai_aml_segment *amls,
         || lai_exec_reserve_stack(state))
         return LAI_ERROR_OUT_OF_MEMORY;
 
+    lai_warn("0x%p\n", amls->table);
     size_t size = amls->table->header.length - sizeof(acpi_header_t);
 
     struct lai_ctxitem *populate_ctxitem = lai_exec_push_ctxstack(state);

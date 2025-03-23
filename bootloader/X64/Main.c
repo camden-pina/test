@@ -158,7 +158,13 @@ EFI_STATUS EFIMAIN UefiMain(IN EFI_HANDLE ImageHandle, IN EFI_SYSTEM_TABLE *Syst
   BootInfo->fb_size = FramebufferSize;
   BootInfo->fb_width = ScreenWidth;
   BootInfo->fb_height = ScreenHeight;
-  BootInfo->fb_pixel_format = GetBootInfoPixelFormat(GraphicsMode->PixelFormat);
+  BootInfo->fb_pixel_format = 5; // GetBootInfoPixelFormat(GraphicsMode->PixelFormat);
+  
+  Status = GetFramebufferPitch(&BootInfo->fb_pixel_format);
+  if (EFI_ERROR(Status)) {
+    PRINT_ERROR("Failed to get framebuffer pitch");
+    return 0;
+  }
 
   BootInfo->initrd_addr = InitrdPhysAddr;
   BootInfo->initrd_size = InitrdSize;

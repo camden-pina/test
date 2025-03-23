@@ -6,15 +6,13 @@
 #include <stdbool.h>
 #include <queue.h>
 
-#include <mm/bitmap.h>
-
 #include <mm_types.h>
 
 // TODO: switch to better allocator for large sizes
 #define CHUNK_MIN_SIZE   8
-#define CHUNK_MAX_SIZE   524288
+#define CHUNK_MAX_SIZE   (KERNEL_HEAP_SIZE - sizeof(mm_chunk_t)) //  524288
 #define CHUNK_SIZE_ALIGN 8
-#define CHUNK_MIN_ALIGN  4
+#define CHUNK_MIN_ALIGN  16
 
 #define CHUNK_MAGIC 0xC0DE
 #define HOLE_MAGIC 0xDEAD
@@ -43,6 +41,8 @@ typedef struct mm_heap {
     } stats;
   } mm_heap_t;
   
+  typedef uintptr_t dma_addr_t;
+
 void init_kheap();
 
 void pmm_init(void* mMap, size_t mMapSize, size_t mMapDescSize);
@@ -58,5 +58,10 @@ void kfree(void *ptr);
 
 uintptr_t pmm_early_alloc_pages(size_t count);
 void *pmm_alloc(void);
+void *dma_alloc_coherent(size_t size, dma_addr_t *dma_handle);
+page_t *alloc_pages_at(uint64_t phys_addr, int count, size_t page_size);
+page_t *alloc_pages(size_t count);
+
+void print_buddy_debug();
 
 #endif // _PMM_H

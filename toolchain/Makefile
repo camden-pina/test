@@ -1,9 +1,10 @@
-# Makefile for building Binutils, GCC, and dependencies (GMP, MPFR, MPC) for ModernOS
+# Makefile for building Binutils, GCC, GDB, and dependencies (GMP, MPFR, MPC) for ModernOS
 
 # -----------------------
 # Versions (modify as needed)
 GCC_VERSION       := 14.2.0
 BINUTILS_VERSION  := 2.37
+GDB_VERSION       := 14.2
 GMP_VERSION       := 6.2.1
 MPFR_VERSION      := 4.1.0
 MPC_VERSION       := 1.2.1
@@ -23,6 +24,7 @@ JOBS ?= $(shell nproc)
 # Source tarball URLs
 GCC_URL       := https://ftp.gnu.org/gnu/gcc/gcc-$(GCC_VERSION)/gcc-$(GCC_VERSION).tar.gz
 BINUTILS_URL  := https://ftp.gnu.org/gnu/binutils/binutils-$(BINUTILS_VERSION).tar.gz
+GDB_URL       := https://ftp.gnu.org/gnu/gdb/gdb-$(GDB_VERSION).tar.gz
 GMP_URL       := https://gmplib.org/download/gmp/gmp-$(GMP_VERSION).tar.xz
 MPFR_URL      := https://www.mpfr.org/mpfr-$(MPFR_VERSION)/mpfr-$(MPFR_VERSION).tar.xz
 MPC_URL       := https://ftp.gnu.org/gnu/mpc/mpc-$(MPC_VERSION).tar.gz
@@ -32,8 +34,8 @@ MPC_URL       := https://ftp.gnu.org/gnu/mpc/mpc-$(MPC_VERSION).tar.gz
 DOWNLOAD_TOOL := $(shell command -v aria2c 2>/dev/null)
 
 # -----------------------
-# Default target: final GCC binary installed
-all: $(PREFIX)/bin/$(TARGET)-gcc
+# Default target: final GCC and GDB binaries installed
+all: $(PREFIX)/bin/$(TARGET)-gcc $(PREFIX)/bin/$(TARGET)-gdb
 
 # -----------------------
 # Download rules
@@ -51,6 +53,14 @@ ifeq ($(DOWNLOAD_TOOL),)
 	wget -O $@ $(BINUTILS_URL)
 else
 	cd $(SRC_DIR) && aria2c -x 16 -s 16 -o $(notdir $@) $(BINUTILS_URL)
+endif
+
+$(SRC_DIR)/gdb-$(GDB_VERSION).tar.gz:
+	@mkdir -p $(SRC_DIR)
+ifeq ($(DOWNLOAD_TOOL),)
+	wget -O $@ $(GDB_URL)
+else
+	cd $(SRC_DIR) && aria2c -x 16 -s 16 -o $(notdir $@) $(GDB_URL)
 endif
 
 $(SRC_DIR)/gmp-$(GMP_VERSION).tar.xz:
@@ -87,6 +97,10 @@ $(SRC_DIR)/binutils-$(BINUTILS_VERSION)/.extracted: $(SRC_DIR)/binutils-$(BINUTI
 	tar -xzf $< -C $(SRC_DIR)
 	touch $@
 
+$(SRC_DIR)/gdb-$(GDB_VERSION)/.extracted: $(SRC_DIR)/gdb-$(GDB_VERSION).tar.gz
+	tar -xzf $< -C $(SRC_DIR)
+	touch $@
+
 $(SRC_DIR)/gmp-$(GMP_VERSION)/.extracted: $(SRC_DIR)/gmp-$(GMP_VERSION).tar.xz
 	tar -xf $< -C $(SRC_DIR)
 	touch $@
@@ -100,7 +114,7 @@ $(SRC_DIR)/mpc-$(MPC_VERSION)/.extracted: $(SRC_DIR)/mpc-$(MPC_VERSION).tar.gz
 	touch $@
 
 # -----------------------
-# Link GCC dependencies (create symlinks for GMP, MPFR, MPC)
+# Link GCC dependencies
 $(SRC_DIR)/gcc-$(GCC_VERSION)/.deps_done: \
 	$(SRC_DIR)/gcc-$(GCC_VERSION)/.extracted \
 	$(SRC_DIR)/gmp-$(GMP_VERSION)/.extracted \
@@ -114,7 +128,7 @@ $(SRC_DIR)/gcc-$(GCC_VERSION)/.deps_done: \
 	touch $@
 
 # -----------------------
-# Build and install Binutils (stamp: $(BUILD_DIR)/binutils/.build_done)
+# Build and install Binutils
 $(BUILD_DIR)/binutils/.build_done: $(SRC_DIR)/binutils-$(BINUTILS_VERSION)/.extracted
 	@mkdir -p $(BUILD_DIR)/binutils
 	cd $(BUILD_DIR)/binutils && \
@@ -128,11 +142,10 @@ $(BUILD_DIR)/binutils/.build_done: $(SRC_DIR)/binutils-$(BINUTILS_VERSION)/.extr
 	$(MAKE) install
 	touch $@
 
-# Final target for Binutils installation
 $(PREFIX)/bin/$(TARGET)-as: $(BUILD_DIR)/binutils/.build_done
 
 # -----------------------
-# Build and install GCC (stamp: $(BUILD_DIR)/gcc/.build_done)
+# Build and install GCC
 $(BUILD_DIR)/gcc/.build_done: $(PREFIX)/bin/$(TARGET)-as $(SRC_DIR)/gcc-$(GCC_VERSION)/.deps_done
 	@mkdir -p $(BUILD_DIR)/gcc
 	cd $(BUILD_DIR)/gcc && \
@@ -148,12 +161,30 @@ $(BUILD_DIR)/gcc/.build_done: $(PREFIX)/bin/$(TARGET)-as $(SRC_DIR)/gcc-$(GCC_VE
 	$(MAKE) -j$(JOBS) install-target-libgcc
 	touch $@
 
-# Final target for GCC installation
 $(PREFIX)/bin/$(TARGET)-gcc: $(BUILD_DIR)/gcc/.build_done
+
+# -----------------------
+# Build and install GDB
+$(BUILD_DIR)/gdb/.build_done: $(SRC_DIR)/gdb-$(GDB_VERSION)/.extracted $(PREFIX)/bin/$(TARGET)-gcc
+	@mkdir -p $(BUILD_DIR)/gdb
+	cd $(BUILD_DIR)/gdb && \
+	$(SRC_DIR)/gdb-$(GDB_VERSION)/configure \
+		--target=$(TARGET) \
+		--prefix=$(PREFIX) \
+		--with-sysroot \
+		--with-expat \
+		--disable-nls \
+		--disable-werror && \
+	$(MAKE) -j$(JOBS) && \
+	$(MAKE) install
+	touch $@
+
+$(PREFIX)/bin/$(TARGET)-gdb: $(BUILD_DIR)/gdb/.build_done
 
 # -----------------------
 # Clean target
 clean:
-	rm -rf $(BUILD_DIR) $(PREFIX)
+	rm -rf $(BUILD_DIR) $(PREFIX) \
+		$(SRC_DIR)/gdb-$(GDB_VERSION)*
 
 .PHONY: all clean

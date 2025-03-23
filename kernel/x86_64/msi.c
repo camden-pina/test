@@ -6,10 +6,8 @@
 #include <io.h>
 #include <mm/pgtable.h>
 #include <mm/pmm.h>
-
-extern uintptr_t next_free_virt;  // declared in your pgtable.c
-
-#define PAGE_SIZE 0x1000
+#include <mm/vmem.h>
+#include <string.h>
 
 /**
  * map_physical_region - Map an existing physical region into virtual memory.
@@ -24,11 +22,9 @@ extern uintptr_t next_free_virt;  // declared in your pgtable.c
 void *map_physical_region(uintptr_t phys_addr, size_t size, uint32_t vm_flags) {
     // Round up size to page boundary.
     size_t pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
-    uintptr_t vaddr = next_free_virt;
-    void *mapped = early_map_entries(vaddr, phys_addr, pages, vm_flags);
-    if (mapped) {
-        next_free_virt += pages * PAGE_SIZE;
-    }
+    kprintf("phys_addr: %llx\n", phys_addr);
+    void *mapped = (void *)vmap_phys(phys_addr, 0, pages * PAGE_SIZE, vm_flags, "msi table");
+
     return mapped;
 }
 
@@ -144,15 +140,24 @@ int pci_enable_msix(pci_device_t *dev, uint8_t vector_base, uint16_t num_vectors
 
     // Calculate the size needed for the MSI-X table.
     size_t table_mapping_size = num_vectors * sizeof(msix_table_entry_t);
-    kprintf("Mapping MSI-X table region: size=0x%zx bytes\n", table_mapping_size);
+    kprintf("Mapping MSI-X table region: size=0x%lx bytes\n", table_mapping_size);
 
     // --- Ensure table physical address is page aligned ---
     size_t table_pgoff = msix_table_phys % PAGE_SIZE;
     uintptr_t aligned_msix_table_phys = msix_table_phys - table_pgoff;
     size_t aligned_table_mapping_size = table_mapping_size + table_pgoff;
 
-    msix_table_entry_t *mapped_table_region = (msix_table_entry_t *)
-        map_physical_region(aligned_msix_table_phys, aligned_table_mapping_size, VM_WRITE | VM_NOCACHE);
+    kprintf("aligned_msix_table_phys: %lx, aligned_table_mappins_size: %lx\n", aligned_msix_table_phys, aligned_table_mapping_size);
+    vm_print_address_space();
+    print_buddy_debug();
+    msix_table_entry_t *mapped_table_region = (msix_table_entry_t*)ioremap(aligned_msix_table_phys, aligned_table_mapping_size, "msix table");
+    /*msix_table_entry_t *mapped_table_region = (msix_table_entry_t*)vmap_phys(
+            aligned_msix_table_phys,
+            0,
+            ((aligned_table_mapping_size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE,
+            VM_WRITE | VM_NOCACHE,
+            "msi table");*/
+        // map_physical_region(aligned_msix_table_phys, aligned_table_mapping_size, VM_WRITE | VM_NOCACHE);
     if (!mapped_table_region) {
         kprintf("Failed to map MSI-X table region\n");
         return -1;
@@ -181,8 +186,15 @@ int pci_enable_msix(pci_device_t *dev, uint8_t vector_base, uint16_t num_vectors
     uintptr_t aligned_msix_pba_phys = msix_pba_phys - pba_pgoff;
     size_t aligned_pba_mapping_size = pba_mapping_size + pba_pgoff;
 
-    uint32_t *mapped_pba_region = (uint32_t *)
-        map_physical_region(aligned_msix_pba_phys, aligned_pba_mapping_size, VM_WRITE | VM_NOCACHE);
+    kprintf("aligned_msix_table_phys: %lx, aligned_table_mappins_size: %lx\n", aligned_msix_pba_phys, aligned_pba_mapping_size);
+    uint32_t *mapped_pba_region = (uint32_t*)ioremap(aligned_msix_pba_phys, aligned_pba_mapping_size, "msix pba");
+    /*uint32_t *mapped_pba_region = (uint32_t*)vmap_phys(
+            aligned_msix_pba_phys,
+            0,
+            ((aligned_pba_mapping_size + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE,
+            VM_WRITE | VM_NOCACHE,
+            "msi pba");*/
+        // map_physical_region(aligned_msix_pba_phys, aligned_pba_mapping_size, VM_WRITE | VM_NOCACHE | VM_FIXED);
     if (!mapped_pba_region) {
         kprintf("Failed to map MSI-X PBA region\n");
         return -1;

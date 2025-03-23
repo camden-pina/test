@@ -135,6 +135,8 @@ symlink:
 clean:
 	@echo "$(CYAN)[Clean] Cleaning up build artifacts in $(BUILD_DIR)...$(RESET)"
 	@rm -rf $(BUILD_DIR)
-	@echo "$(CYAN)[Clean] Cleaning up EDK2 build artifacts in $(EDK2_DIR)...$(RESET)"
 	@cd $(EDK2_DIR) && . ./edksetup.sh && build -p "Bootloader_$(ARCH)/MyPlatform.dsc" -a $(ARCH) -t $(TOOLCHAIN) -b $(BUILD_TYPE) clean
+	@rm -rf edk2/Bootloader_X64
+	@rm -rf edk2/Build/Bootloader_X64
+	@echo "$(CYAN)[Clean] Cleaning up EDK2 build artifacts in $(EDK2_DIR)...$(RESET)"
 
