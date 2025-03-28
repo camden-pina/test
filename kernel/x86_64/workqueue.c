@@ -5,12 +5,10 @@ static struct work_struct *work_head = 0;
 static struct work_struct *work_tail = 0;
 
 void schedule_work(struct work_struct *work) {
-    // Defensive: Ensure we never schedule a work item with a NULL function pointer.
     if (!work->func) {
         serial_port_write("schedule_work: work->func is NULL!\n");
         return;
     }
-    // If already pending, do not add it again.
     if (work->pending)
         return;
     work->pending = 1;
@@ -25,14 +23,12 @@ void schedule_work(struct work_struct *work) {
 }
 
 void process_workqueue(void) {
-    // Process one work item per call.
     if (work_head) {
         struct work_struct *work = work_head;
         work_head = work_head->next;
         if (!work_head)
             work_tail = 0;
-        work->pending = 0; // Clear the pending flag.
-        // Defensive check before calling.
+        work->pending = 0;
         if (work->func)
             work->func(work->data);
         else

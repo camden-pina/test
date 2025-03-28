@@ -181,6 +181,8 @@ umount-img:
 export:
 	$(shell export PATH = home/camdenpina/Documents/test/toolchain/opt/cross/bin:$(PATH))
 
+rrk: clean-kernel all run-serial
+
 ################################################################################
 # Clean Up Build Artifacts
 ################################################################################

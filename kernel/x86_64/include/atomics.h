@@ -19,6 +19,24 @@ typedef enum {
    We use int for simplicity (0 == false, 1 == true). */
 typedef volatile int atomic_bool;
 
+
+#define atomic_fetch_add(ptr, val)  \
+  __sync_fetch_and_add(ptr, val)
+
+#define atomic_fetch_sub(ptr, val) \
+  __sync_fetch_and_sub(ptr, val)
+
+#define atomic_bit_test_and_set(ptr, b) \
+  __atomic_bit_test_and_set((void *)(ptr), b)
+
+#define atomic_bit_test_and_reset(ptr, b) \
+  __atomic_bit_test_and_reset((void *)(ptr), b)
+
+#define atomic_lock_test_and_set(ptr) \
+  __sync_lock_test_and_set(ptr, 1)
+#define atomic_lock_test_and_reset(ptr) \
+  __sync_lock_release(ptr)
+
 /* Macro to initialize an atomic variable.
    Example usage: atomic_bool flag = ATOMIC_VAR_INIT(false); */
 #define ATOMIC_VAR_INIT(value) ((value) ? 1 : 0)

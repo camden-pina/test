@@ -47,6 +47,7 @@ static void framebuf_static_init(void) {
     kprintf("  height: %llu\n", HEIGHT);
     kprintf("  size: %llu\n", FB_SIZE);
     kprintf("  pitch: %llu\n", boot_info_v2->fb_pixel_format);
+  render_init();
 
     framebuf_base = early_map_entries(FRAMEBUFFER_VA, boot_info_v2->fb_addr,
                       FB_SIZE / PAGE_SIZE, VM_RDWR | VM_FIXED);

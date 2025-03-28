@@ -587,6 +587,45 @@ page_t *alloc_pages(size_t count) {
     return alloc_pages_size(count, PAGE_SIZE);
 }
 
+/*
+ * alloc_cow_structs():
+ *  Creates a new linked list of page_t structures for copy-on-write.
+ *  Each new structure is allocated, its address and flags adjusted,
+ *  and its source is set as a reference to the original page.
+ */
+__ref static page_t *alloc_cow_structs(page_t *pages) {
+  kassert(pages->flags & PG_HEAD);
+
+  page_t *first = NULL;
+  page_t *last = NULL;
+  page_t *curr = pages;
+  while (curr) {
+    page_t *page = kmallocz(sizeof(page_t));
+    page->address = curr->address;
+    page->flags = (curr->flags & PG_SIZE_MASK) | PG_COW;
+    page->source = getref(curr);
+    initref(page);
+    if (first == NULL) {
+      first = moveref(page);
+      last = first;
+    } else {
+      last->next = moveref(page);
+      last = last->next;
+    }
+
+    curr = curr->next;
+  }
+
+  first->flags |= PG_HEAD;
+  first->head.count = pages->head.count;
+  first->head.contiguous = pages->head.contiguous;
+  return moveref(first);
+}
+
+__ref page_t *alloc_cow_pages(page_t *pages) {
+    return alloc_cow_structs(pages);
+  }
+
 void print_buddy_debug() {
   buddy_debug_print(&global_buddy);
 }

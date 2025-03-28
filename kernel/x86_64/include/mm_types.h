@@ -3,10 +3,11 @@
 
 #include <queue.h>
 #include <kernel.h>
-// #include <ref.h>
+#include <ref.h>
 #include <stddef.h>
 #include <str.h>
 #include <stdint.h>
+#include <ref.h>
 
 #ifndef PAGE_SIZE
 #define PAGE_SIZE 0x1000
@@ -52,6 +53,7 @@ struct vm_file;
     };
     struct pte *entries;          // s-list of pte structs (l)
     struct page *next;            // next page ref (l)
+    _refcount;
 } page_t;
 
 // page flags
@@ -220,11 +222,11 @@ typedef struct vm_desc {
 #define KERNEL_SPACE_END    0xFFFFFFFFFFFFFFFFULL
 
 #define FRAMEBUFFER_VA      0xFFFFBFFF00000000ULL
-#define KERNEL_HEAP_VA      0xFFFFFF8000400000ULL
-#define IOREMAP_BASE        0xFFFFFF8000A00000ULL
-#define KERNEL_RESERVED_VA  0xFFFFFF8000C00000ULL
+#define KERNEL_HEAP_VA      0xFFFFFF8000400000ULL // 100mb till ioremap_base
+#define IOREMAP_BASE        0xFFFFFF8006C00000ULL // 2mb till kernel reserved va // 0xFFFFFF8000A40000ULL // 0xFFFFFF8000A00000ULL
+#define KERNEL_RESERVED_VA  0xFFFFFF8006E00000ULL // 0xFFFFFF8000C40000ULL // 0xFFFFFF8000C00000ULL
 
-#define KERNEL_HEAP_SIZE   (6 * SIZE_1MB)
+#define KERNEL_HEAP_SIZE   (100 * SIZE_1MB)
 #define KERNEL_STACK_SIZE  SIZE_16KB
 
 #endif

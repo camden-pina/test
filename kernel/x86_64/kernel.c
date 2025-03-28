@@ -83,16 +83,15 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	kprintf_early_init();
 
 	pmm_init(boot_info_v2->mem_map.map, boot_info_v2->mem_map.size, sizeof(memory_map_entry_t));
-	vmem_init();
 	// init_address_space();
-	// proc0_init();
+	proc0_init();
 	// test_thread(NULL);
 	// create_kernel_thread(test_thread, 0, "test_thread");
 	do_static_initializers();
 	kprintf_init();
 
 	// init_default_mappings();
-	vm_print_address_space();
+	// vm_print_address_space();
 
 	__asm__ volatile("cli");
 	gdt_init();
@@ -101,6 +100,7 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	lapic_init();
 	ioapic_init();
 	__asm__ volatile("sti");
+	vmem_init();
 	// drawRect(0, 0, boot_hdr->fb->px_width, boot_hdr->fb->px_height, 0x00000000);
 
 	// krnl_printf_reset_x();
@@ -118,7 +118,7 @@ void kern_main(boot_info_v2_t* boot_hdr)
 
 	kprintf("Copyright (C) Ideal Technologies Inc.\n\r");
 
-	thread_yield();
+	// thread_yield();
 	vm_print_address_space();
 	while (1)
 	{// usb_keyboard_poll();
@@ -128,6 +128,5 @@ void kern_main(boot_info_v2_t* boot_hdr)
 
 __used void ap_main() {
 	while (1) {
-
 	}
 }

@@ -33,3 +33,12 @@ void do_static_initializers() {
     LIST_ENTRY_INIT(&obj->list);
     LIST_ADD(&init_address_space_cb_list, obj, list);
   }
+
+  void execute_init_address_space_callbacks() {
+    callback_obj_t *obj;
+    LIST_FOREACH(obj, &init_address_space_cb_list, list) {
+      obj->callback(obj->data);
+      kfree(obj);
+    }
+    LIST_INIT(&init_address_space_cb_list);
+  }

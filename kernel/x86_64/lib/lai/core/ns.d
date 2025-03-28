@@ -5,4 +5,4 @@ lib/lai/core/ns.o: lib/lai/core/ns.c lib/lai/include/lai/core.h \
  lib/lai/include/lai/internal-util.h lib/lai/include/lai/internal-ns.h \
  lib/lai/core/aml_opcodes.h lib/lai/core/eval.h lib/lai/core/exec_impl.h \
  lib/lai/core/libc.h lib/lai/core/ns_impl.h lib/lai/core/util-hash.h \
- include/printf.h include/kernel.h
+ include/printf.h include/kernel.h include/atomics.h

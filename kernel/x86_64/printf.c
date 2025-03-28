@@ -35,8 +35,8 @@ static void printf_process_workqueue(void *arg) {
   (void)arg; // Unused parameter.
   while (1) {
     if (framebuf_base != NULL) {
-      process_workqueue();
-      thread_yield();
+      // process_workqueue();
+      // thread_yield();
     }
   }
 }
@@ -48,8 +48,7 @@ void kprintf_early_init() {
 }
 
 void kprintf_init() {
-  render_init();
-  create_kernel_thread(printf_process_workqueue, 0, "process workqueue");
+  // create_kernel_thread(printf_process_workqueue, 0, "process workqueue");
 }
 
 void kprintf_kputs(const char *str) {
@@ -67,6 +66,7 @@ void kprintf(const char *format, ...) {
   if (framebuf_base != NULL) {
     log_print_str(str);
     render_deferred();
+    process_workqueue();
   }
 }
 

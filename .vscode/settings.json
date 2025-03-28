@@ -61,6 +61,7 @@
         "io_context": "c",
         "rope": "c",
         "chrono": "c",
-        "future": "c"
+        "future": "c",
+        "init.h": "c"
     }
 }

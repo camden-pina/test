@@ -64,4 +64,8 @@ page_t *alloc_pages(size_t count);
 
 void print_buddy_debug();
 
+uintptr_t kheap_phys_addr(void);
+
+__ref page_t *alloc_cow_pages(page_t *pages);
+
 #endif // _PMM_H

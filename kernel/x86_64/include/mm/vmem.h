@@ -41,6 +41,8 @@ void vfree(void *ptr);
 /* Address space management */
 void init_default_mappings(void);
 void vmem_init(void);
+void init_ap_address_space();
+
 address_space_t *vm_new_space(uintptr_t min_addr, uintptr_t max_addr, uintptr_t page_table);
 address_space_t *vm_current_space(void);
 void vm_set_current_space(address_space_t *space);

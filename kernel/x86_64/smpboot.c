@@ -87,7 +87,7 @@ vm_print_address_space();
     /* Get and set the default AP PML4 address */
     uint32_t ap_pml4 = (uint32_t) kernel_space->page_table;
     kprintf("DEBUG: CPU#%d: Retrieved default AP PML4 address: 0x%x\n", id, ap_pml4);
-    smpdata->pml4_addr = ap_pml4;
+    smpdata->pml4_addr = (uint32_t) get_default_ap_pml4(); // ap_pml4;
     smpdata->percpu_ptr = (uintptr_t) percpu_area;
     smpdata->stack_addr = (uintptr_t) ap_stack_ptr + KERNEL_STACK_SIZE;
 

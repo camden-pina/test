@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <printf.h>
+#include <atomics.h>
 
 // Contains definitions for the data structures given
 // to the kernel by the bootloader. The data structures
@@ -321,10 +322,22 @@ extern const uintptr_t __kernel_code_end;
 extern const uintptr_t __kernel_data_end;
 */
 
+typedef volatile int refcount_t;
+
+static inline void ref_init(refcount_t *ref) {
+  *ref = 1;
+}
+
+static inline void ref_get(refcount_t *ref) { // NOLINT(*-non-const-parameter)
+  atomic_fetch_add(ref, 1);
+}
+
 #define initref(objptr) (ref_init(&(objptr)->_refname))
 #define newref(objptr) ({ ref_init(&(objptr)->_refname); objptr; })
 #define getref(objptr) ({ if (__expect_true((objptr) != NULL)) ref_get(&(objptr)->_refname); objptr; })
 #define moveref(objref) ({ typeof(objref) __tmp = (objref); (objref) = NULL; __tmp; })
+
+#define __ref
 
 extern char __kernel_address[];
 extern char __kernel_virtual_offset[];

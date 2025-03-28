@@ -1,0 +1,130 @@
+[2J[01;01H[=3h[2J[01;01H[0m[35m[40m[0m[37m[40mBdsDxe: failed to load Boot0001 "UEFI QEMU DVD-ROM QM00005 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x2,0xFFFF,0x0): Not Found
+BdsDxe: loading Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)
+BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)
+[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,A41BF9AA-4B9F-46E7-ABFE-AB36E847A603,0x800,0x187DF)
+[Loader] INFO:     Listing directory:
+  EFI
+  ModernOS
+  NvVars
+[Loader] INFO:     Selected graphics device: PciRoot(0x0)/Pci(0x1,0x0)/AcpiAdr(0x80010100)
+[Loader] INFO:     Loading config
+[Loader] INFO:       1 | kernel=/ModernOS/kernel.elf
+[Loader] INFO:       2 | video=2560x1440
+[Loader] INFO:       3 | fastboot=true
+[Loader] INFO:       4 | debug=true
+[Loader] INFO:     Config loaded
+[Loader] INFO:     Requested resolution: 2560x1440
+[Loader] INFO:     Changing video mode
+[Loader] INFO:     Requested resolution: 2560x1440
+[2J[01;01H[Loader] INFO:     Found graphics mode with matching resolution
+[Loader] INFO:     Using graphics mode: 2560x1440
+[Loader] INFO:     Loading kernel
+[Loader] INFO:       phys addr: 0x100000
+[Loader] INFO:       image size: 736600
+[Loader] INFO:       kernel entry: 0xFFFF800000138337
+[Loader] INFO:       memory size: 638976
+[Loader] INFO:     Loading executable data segment
+[Loader] INFO:       base: 0xFFFF800000100000
+[Loader] INFO:       size: 0x9C000 (156 pages)
+[Loader] INFO:     Found .load_sections section
+[Loader] INFO:       loading section '.init_array.static' __static_init_array
+[Loader] INFO:     Found .boot_data section
+[Loader] INFO:     Looking for boot info symbol
+[Loader] INFO:     Found boot info symbol 'boot_info_v2'
+[Loader] INFO:     Kernel loaded
+[Loader] INFO:     PixelsPerScanLine = 2560
+
+[Loader] INFO:     Done
+[Loader] INFO:     Exiting UEFI...
+Initializing PMM with memory map size: 792 bytes
+Total memory map entries: 33
+Entry 0: Start=0, Type=3
+  [0x0-0x1000] reserved (1)
+Entry 1: Start=0x1000, Type=2
+  [0x1000-0x87000] usable (86)
+Entry 2: Start=0x87000, Type=3
+  [0x87000-0x88000] reserved (1)
+Entry 3: Start=0x88000, Type=2
+  [0x88000-0xa0000] usable (18)
+Entry 4: Start=0x100000, Type=2
+  [0x100000-0x800000] usable (700)
+Entry 5: Start=0x800000, Type=5
+  [0x800000-0x808000] ACPI NVS (8)
+Entry 6: Start=0x808000, Type=2
+  [0x808000-0x810000] usable (8)
+Entry 7: Start=0x810000, Type=5
+  [0x810000-0x900000] ACPI NVS (f0)
+Entry 8: Start=0x900000, Type=3
+  [0x900000-0x1500000] reserved (c00)
+Entry 9: Start=0x1500000, Type=2
+  [0x1500000-0x7bf2e000] usable (7aa2e)
+Entry 10: Start=0x7bf2e000, Type=3
+  [0x7bf2e000-0x7bf4e000] reserved (20)
+Entry 11: Start=0x7bf4e000, Type=2
+  [0x7bf4e000-0x7c29d000] usable (34f)
+Entry 12: Start=0x7c29d000, Type=8
+  [0x7c29d000-0x7e29d000] EFI runtime data (2000)
+Entry 13: Start=0x7e29d000, Type=3
+  [0x7e29d000-0x7e29e000] reserved (1)
+Entry 14: Start=0x7e29e000, Type=2
+  [0x7e29e000-0x7e2a0000] usable (2)
+Entry 15: Start=0x7e2a0000, Type=3
+  [0x7e2a0000-0x7e2a3000] reserved (3)
+Entry 16: Start=0x7e2a3000, Type=2
+  [0x7e2a3000-0x7e2b0000] usable (d)
+Entry 17: Start=0x7e2b0000, Type=3
+  [0x7e2b0000-0x7ec41000] reserved (991)
+Entry 18: Start=0x7ec41000, Type=2
+  [0x7ec41000-0x7ec42000] usable (1)
+Entry 19: Start=0x7ec42000, Type=3
+  [0x7ec42000-0x7f034000] reserved (3f2)
+Entry 20: Start=0x7f034000, Type=8
+  [0x7f034000-0x7f0be000] EFI runtime data (8a)
+Entry 21: Start=0x7f0be000, Type=3
+  [0x7f0be000-0x7f8ef000] reserved (831)
+Entry 22: Start=0x7f8ef000, Type=8
+  [0x7f8ef000-0x7f9ef000] EFI runtime data (100)
+Entry 23: Start=0x7f9ef000, Type=7
+  [0x7f9ef000-0x7faef000] EFI runtime code (100)
+Entry 24: Start=0x7faef000, Type=3
+  [0x7faef000-0x7fb6f000] reserved (80)
+Entry 25: Start=0x7fb6f000, Type=4
+  [0x7fb6f000-0x7fb7f000] ACPI data (10)
+Entry 26: Start=0x7fb7f000, Type=5
+  [0x7fb7f000-0x7fbff000] ACPI NVS (80)
+Entry 27: Start=0x7fbff000, Type=3
+  [0x7fbff000-0x7fe00000] reserved (201)
+Entry 28: Start=0x7fe00000, Type=2
+  [0x7fe00000-0x7fe8e000] usable (8e)
+Entry 29: Start=0x7fe8e000, Type=3
+  [0x7fe8e000-0x7feec000] reserved (5e)
+Entry 30: Start=0x7feec000, Type=8
+  [0x7feec000-0x7ff70000] EFI runtime data (84)
+Entry 31: Start=0x7ff70000, Type=5
+  [0x7ff70000-0x80000000] ACPI NVS (90)
+Entry 32: Start=0xb0000000, Type=3
+  [0xb0000000-0xc0000000] reserved (10000)
+total memory: 2303 GB
+usable memory: 1973 GB
+kernel_reserved_start: 0x1500000
+kernel_reserved_end: 0x7bf2e000
+initialized kernel heap
+Buddy allocator base (first usable page index) = 1
+Buddy allocator total pages: 8ffa0
+proc0_init: Initializing proc0
+proc0_init: proc0 (PID 0) and main thread (TID 1) initialized
+framebuffer:
+  width: 2560
+  height: 1440
+  size: 14745600
+  pitch: 2560
+IDT initialized and loaded. Total entries: 256
+ACPI: RSDP revision 2 detected
+ACPI: XSDT located at 0x7fb7d0e8, entries=6
+ACPI: FADT found at 0x7fb79000
+ACPI: DSDT found at 0x7fb7a000
+[ACPI1] loaded AML table 'DSDT', total 8490 bytes of AML code.[ACPI2] 0x7fb7a000
+[ACPI1] ACPI namespace created, total of 267 predefined objects.ACPI: Namespace initialized via LAI
+ACPI initialization complete.
+Initializing Local APIC...
+Disabling legacy 8259 PIC...
