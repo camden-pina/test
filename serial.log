@@ -1,7 +1,7 @@
 [2J[01;01H[=3h[2J[01;01H[0m[35m[40m[0m[37m[40mBdsDxe: failed to load Boot0001 "UEFI QEMU DVD-ROM QM00005 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x2,0xFFFF,0x0): Not Found
 BdsDxe: loading Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)
 BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)
-[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,A41BF9AA-4B9F-46E7-ABFE-AB36E847A603,0x800,0x187DF)
+[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,102E8C15-40C7-49CA-ADCB-99332F52E7AC,0x800,0x187DF)
 [Loader] INFO:     Listing directory:
   EFI
   ModernOS
@@ -20,12 +20,12 @@ BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x
 [Loader] INFO:     Using graphics mode: 2560x1440
 [Loader] INFO:     Loading kernel
 [Loader] INFO:       phys addr: 0x100000
-[Loader] INFO:       image size: 736600
-[Loader] INFO:       kernel entry: 0xFFFF800000138337
-[Loader] INFO:       memory size: 638976
+[Loader] INFO:       image size: 748832
+[Loader] INFO:       kernel entry: 0xFFFF800000138DF9
+[Loader] INFO:       memory size: 704512
 [Loader] INFO:     Loading executable data segment
 [Loader] INFO:       base: 0xFFFF800000100000
-[Loader] INFO:       size: 0x9C000 (156 pages)
+[Loader] INFO:       size: 0xAC000 (172 pages)
 [Loader] INFO:     Found .load_sections section
 [Loader] INFO:       loading section '.init_array.static' __static_init_array
 [Loader] INFO:     Found .boot_data section
@@ -67,13 +67,13 @@ Entry 12: Start=0x7c29d000, Type=8
 Entry 13: Start=0x7e29d000, Type=3
   [0x7e29d000-0x7e29e000] reserved (1)
 Entry 14: Start=0x7e29e000, Type=2
-  [0x7e29e000-0x7e2a0000] usable (2)
-Entry 15: Start=0x7e2a0000, Type=3
-  [0x7e2a0000-0x7e2a3000] reserved (3)
-Entry 16: Start=0x7e2a3000, Type=2
-  [0x7e2a3000-0x7e2b0000] usable (d)
-Entry 17: Start=0x7e2b0000, Type=3
-  [0x7e2b0000-0x7ec41000] reserved (991)
+  [0x7e29e000-0x7e2ab000] usable (d)
+Entry 15: Start=0x7e2ab000, Type=3
+  [0x7e2ab000-0x7e4eb000] reserved (240)
+Entry 16: Start=0x7e4eb000, Type=2
+  [0x7e4eb000-0x7e4ed000] usable (2)
+Entry 17: Start=0x7e4ed000, Type=3
+  [0x7e4ed000-0x7ec41000] reserved (754)
 Entry 18: Start=0x7ec41000, Type=2
   [0x7ec41000-0x7ec42000] usable (1)
 Entry 19: Start=0x7ec42000, Type=3
@@ -111,8 +111,6 @@ kernel_reserved_end: 0x7bf2e000
 initialized kernel heap
 Buddy allocator base (first usable page index) = 1
 Buddy allocator total pages: 8ffa0
-proc0_init: Initializing proc0
-proc0_init: proc0 (PID 0) and main thread (TID 1) initialized
 framebuffer:
   width: 2560
   height: 1440
@@ -128,3 +126,27 @@ ACPI: DSDT found at 0x7fb7a000
 ACPI initialization complete.
 Initializing Local APIC...
 Disabling legacy 8259 PIC...
+PIC remapped and masked (all IRQs off).
+Local APIC base=0xfee00000 (from MSR), APIC enabled via MSR (0xfee00900)
+LAPIC: SVR set to 0x000001ff (spurious vector=0xFF, APIC enabled)
+LAPIC: LINT0/LINT1 masked (0x00010700, 0x00010400)
+LAPIC: TPR set to 0 (no priority masking)
+Local APIC initialization complete.
+ACPI MADT: LAPIC addr=0xfee00000, Flags=0x1
+registering APIC[0]
+registering APIC[1]
+ MADT: I/O APIC ID=0, Addr=0xfec00000, GSI Base=0
+[vmem] Initializing virtual memory management system...
+kernel code start: ffff800000100000
+kernel code end: ffff80000014e000
+kernel data end: ffff80000016c000
+kernel virtual offset: ffff800000000000
+kernel_phys: 100000
+kernel_size: 6c000
+kernel_vaddr: ffff000000100000
+
+
+HINT: 0
+
+
+FIXED[vmem] check_range_free: Checking region [0x0, 0x1000)

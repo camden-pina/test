@@ -70,4 +70,6 @@ void cpu_flush_tlb(void);
 /* Syscall interface – here declared with a variadic prototype for flexibility */
 long syscall(long code, ...);
 
+uint32_t get_cpu_id(void);
+
 #endif /* KERNEL_CPU_H */

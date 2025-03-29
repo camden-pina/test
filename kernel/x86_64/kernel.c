@@ -26,6 +26,8 @@
 #include <thread.h>
 #include <mm/vmem.h>
 #include <smpboot.h>
+#include <sched.h>
+#include <cpu.h>
 
 static unsigned char SCAN_CODE_MAPPING[] = "\x00""\x1B""1234567890-=""\x08""\tqwertyuiop[]\n\0asdfghjkl;'`\0\\zxcvbnm,./\0*\0 \0\0\0\0\0\0\0\0\0\0\0\0\0-456+1230.\0\0\0\0\0";
 
@@ -83,15 +85,8 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	kprintf_early_init();
 
 	pmm_init(boot_info_v2->mem_map.map, boot_info_v2->mem_map.size, sizeof(memory_map_entry_t));
-	// init_address_space();
-	proc0_init();
-	// test_thread(NULL);
-	// create_kernel_thread(test_thread, 0, "test_thread");
 	do_static_initializers();
 	kprintf_init();
-
-	// init_default_mappings();
-	// vm_print_address_space();
 
 	__asm__ volatile("cli");
 	gdt_init();
@@ -101,32 +96,36 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	ioapic_init();
 	__asm__ volatile("sti");
 	vmem_init();
-	// drawRect(0, 0, boot_hdr->fb->px_width, boot_hdr->fb->px_height, 0x00000000);
-
-	// krnl_printf_reset_x();
-	// krnl_printf_reset_y();
 	
 	kprintf("ModernOS (C)\n\n\r");
 
 	smp_init();
 
 	pci_init();
-	//init_device_interrupts();
 	usb_init();
 	usb_keyboard_init();
 	usb_print_devices();
 
 	kprintf("Copyright (C) Ideal Technologies Inc.\n\r");
 
-	// thread_yield();
 	vm_print_address_space();
+
+	sched_init();
+	int cpu_id = get_cpu_id();
+	sched_init_cpu(cpu_id);
+
+	sched_start_cpu(cpu_id);
+
 	while (1)
-	{// usb_keyboard_poll();
-		// process_workqueue();
+	{
+
 	}
 }
 
 __used void ap_main() {
+	int cpu_id = get_cpu_id();
+	sched_init_cpu(cpu_id);
+	sched_start_cpu(cpu_id);
 	while (1) {
 	}
 }

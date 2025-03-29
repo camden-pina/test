@@ -219,3 +219,14 @@ cpu_flush_tlb:
 syscall:
     movq %rdi, %rax     # move syscall code from rdi to rax
     syscall
+
+# Other
+.globl get_cpu_id
+get_cpu_id:
+    movl $1, %eax       # Set EAX = 1 to request CPU info.
+    cpuid               # Execute CPUID. After this:
+                        #   - EAX, EBX, ECX, EDX are filled.
+                        #   - The APIC ID is in bits 24-31 of EBX.
+    movl %ebx, %eax     # Move EBX into EAX.
+    shr $24, %eax       # Shift right by 24 bits to isolate the APIC ID.
+    ret                 # Return; the APIC ID is now in EAX.
