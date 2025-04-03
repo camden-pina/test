@@ -5,7 +5,7 @@
 #include "panic.h"
 #include "printf.h"
 #include "config.h"
-#include <cpu.h>
+#include <cpu/cpu.h>
 
 static int global_tid_counter = 1;
 

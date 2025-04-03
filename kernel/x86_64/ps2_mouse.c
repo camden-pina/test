@@ -1,5 +1,6 @@
 #include "ps2_mouse.h"
 #include <printf.h>
+#include <wm/wm.h>
 
 #define MOUSE_STATUS 0x64
 #define MOUSE_PORT 0x60
@@ -12,6 +13,8 @@ static unsigned char mouse_cycle = 0;
 static void mouse_handler(uint64_t vector, uint32_t error)
 {
 	char _status = inb(MOUSE_PORT);
+
+	wm_handle_mouse(mouse_byte[1], mouse_byte[2], (uint8_t)mouse_byte[0]);
 
 	switch (mouse_cycle)
 	{

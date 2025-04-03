@@ -160,8 +160,8 @@ _Bool acpi_init(uint64_t rsdp_addr) {
     }
 
     // Initialize ACPI AML interpreter (LAI library)
-    lai_set_acpi_revision(fadt->hdr.rev);   // Set ACPI revision for AML interpreter
-    lai_create_namespace();                // Parse ACPI tables (DSDT/SSDT) and create ACPI namespace
+    // lai_set_acpi_revision(fadt->hdr.rev);   // Set ACPI revision for AML interpreter
+    // lai_create_namespace();                // Parse ACPI tables (DSDT/SSDT) and create ACPI namespace
     kprintf("ACPI: Namespace initialized via LAI\n");
 
     kprintf("ACPI initialization complete.\n");

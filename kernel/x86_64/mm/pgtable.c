@@ -3,10 +3,9 @@
 #include <mm/pmm.h>
 #include <string.h>
 #include <panic.h>
-#include <cpu.h>
 #include <fmt.h>
 #include <printf.h>
-#include <cpu.h>
+#include <cpu/cpu.h>
 
 uintptr_t get_current_pgtable();
 
@@ -345,7 +344,6 @@ void set_current_pgtable(uintptr_t table_phys) {
 #include <mm/pmm.h>
 #include <mm_types.h>
 #include <panic.h>
-#include <cpu.h>
 #include <string.h>
 #include <kernel.h>    // For boot_info_v2 or similar if needed
 #include <printf.h>

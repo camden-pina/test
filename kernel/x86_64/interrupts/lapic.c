@@ -5,7 +5,7 @@
 #include <printf.h>
 #include <panic.h>
 #include <acpi/tables.h>  // Needed for MADT parsing when checking for overrides
-#include <cpu.h>
+#include <cpu/cpu.h>
 #include <queue.h>
 #include <mm/vmem.h>
 #include <mm/pmm.h>
@@ -210,14 +210,10 @@ void apic_send_eoi_if_necessary(uint8_t vector) {
     // Calculate the In-Service Register (ISR) index and bit.
     uint32_t isr_reg_index = 0x100 + (vector / 32) * 0x10;
     uint32_t isr_bit = 1u << (vector % 32);
-    kprintf("check1\n");
     uint32_t isr_val = lapic_read(isr_reg_index);
-    kprintf("check2\n");
     if (isr_val & isr_bit) {
-    kprintf("check3\n");
         lapic_write(LAPIC_EOI, 0);
     }
-    kprintf("check4\n");
 }
 
 struct apic_device *get_apic_by_id(uint8_t id) {

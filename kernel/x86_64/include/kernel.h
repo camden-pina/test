@@ -151,7 +151,7 @@ typedef struct register16 {
  * at the end of the 'static' phase. These functions may only use the memory, time, and
  * irq APIs, and are called from within the proc0 context.
  */
-#define STATIC_INIT(fn) static __attribute__((section(".init_array.static"))) void (*__do_static_init_ ## fn)() = fn
+#define STATIC_INIT(fn) static __attribute__((used, section(".init_array.static"))) void (*__do_static_init_ ## fn)() = fn
 
 typedef struct {
     unsigned char Magic[2];

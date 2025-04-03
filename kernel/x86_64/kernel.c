@@ -27,7 +27,14 @@
 #include <mm/vmem.h>
 #include <smpboot.h>
 #include <sched.h>
-#include <cpu.h>
+#include <cpu/cpu.h>
+#include <wm/wm.h>
+#include <storage/ahci/ahci.h>
+#include <storage/block_device.h>
+#include <storage/fs/fat32.h>
+#include <storage/partition.h>
+#include <panic.h>
+#include <cpu/cpu_features.h>
 
 static unsigned char SCAN_CODE_MAPPING[] = "\x00""\x1B""1234567890-=""\x08""\tqwertyuiop[]\n\0asdfghjkl;'`\0\\zxcvbnm,./\0*\0 \0\0\0\0\0\0\0\0\0\0\0\0\0-456+1230.\0\0\0\0\0";
 
@@ -88,6 +95,8 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	do_static_initializers();
 	kprintf_init();
 
+    print_cpu_features();
+
 	__asm__ volatile("cli");
 	gdt_init();
 	idt_init();
@@ -99,22 +108,29 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	
 	kprintf("ModernOS (C)\n\n\r");
 
-	smp_init();
+	// smp_init();
 
 	pci_init();
-	usb_init();
-	usb_keyboard_init();
-	usb_print_devices();
+	// usb_init();
+	// usb_keyboard_init();
+	// usb_print_devices();
+	ps2_mouse_init();
 
 	kprintf("Copyright (C) Ideal Technologies Inc.\n\r");
 
 	vm_print_address_space();
 
 	sched_init();
-	int cpu_id = get_cpu_id();
-	sched_init_cpu(cpu_id);
+	// int cpu_id = get_cpu_id();
+	// sched_init_cpu(cpu_id);
 
-	sched_start_cpu(cpu_id);
+	// sched_start_cpu(cpu_id);
+
+	ahci_init();
+    kprintf("Kernel: File loaded successfully. Continuing boot...\n");
+
+	wm_init();
+	wm_run();
 
 	while (1)
 	{
@@ -129,3 +145,79 @@ __used void ap_main() {
 	while (1) {
 	}
 }
+
+
+
+
+
+
+
+
+    /*
+	int initial_count = get_block_device_count();
+    kprintf("Initially we have %d block devices.\n", initial_count);
+
+    if (initial_count <= 0) {
+        kprintf("No devices found!\n");
+        return;
+    }
+
+    // Suppose device #0 is our main disk
+    block_device_t *raw_disk = get_block_device(0);
+    if (!raw_disk) {
+        // ...
+    }
+    kprintf("Kernel: Using raw device '%s' with %llu sectors.\n",
+            raw_disk->name, (unsigned long long)raw_disk->sector_count);
+
+    // Scan partitions
+    int pcount = partition_scan(raw_disk);
+    if (pcount < 0) {
+        panic("No valid partition table or parse error.\n");
+    }
+    kprintf("Kernel: partition_scan found %d partition(s).\n", pcount);
+
+    if (pcount == 0) {
+        kprintf("No partitions found.\n");
+        return;
+    }
+
+    // After scanning, let's see how many devices exist
+    int after_count = get_block_device_count();
+    kprintf("Now we have %d devices total.\n", after_count);
+
+    // The newly created partition devices have indexes from [initial_count..after_count-1].
+    // If we found 1 partition, that means there's exactly 1 new device, which should be 'initial_count'.
+    int new_device_index = after_count - 1;  // the last device created
+	block_list();
+    block_device_t *part_dev = get_block_device(new_device_index);
+    if (!part_dev) {
+        panic("Couldn't get the newly registered partition device!\n");
+    }
+    kprintf("Kernel: Attempting to mount FAT32 on device #%d ('%s').\n",
+            new_device_index, part_dev->name);
+
+    if (fat32_mount(part_dev) != 0) {
+        kprintf("Kernel: Failed to mount FAT32 on device '%s'\n", part_dev->name);
+        return;
+    }
+    kprintf("Kernel: FAT32 filesystem mounted successfully.\n");
+
+    // Try opening a file
+    file_t *fp = fat32_open("hello.txt", false);
+    if (!fp) {
+        kprintf("Kernel: Failed to open /hello.txt\n");
+        return;
+    }
+    char file_buf[1024];
+    int br = fat32_read(fp, file_buf, sizeof(file_buf)-1);
+    if (br < 0) {
+        kprintf("Kernel: Error reading /hello.txt\n");
+        fat32_close(fp);
+        return;
+    }
+    file_buf[br] = '\0';
+    kprintf("Kernel: /hello.txt =>\n%s\n", file_buf);
+    fat32_close(fp);
+    */
+

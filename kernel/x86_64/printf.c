@@ -66,7 +66,7 @@ void kprintf(const char *format, ...) {
   if (framebuf_base != NULL) {
     log_print_str(str);
     render_deferred();
-    process_workqueue();
+    // process_workqueue();
   }
 }
 

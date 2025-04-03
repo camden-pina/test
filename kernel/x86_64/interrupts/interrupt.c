@@ -70,11 +70,11 @@ void register_interrupt_handler(uint8_t vector, void (*handler)(int)) {
 // Parameters: interrupt number and error code (error_code is meaningful for some exceptions; for hardware IRQs it may be 0).
 void isr_common(uint8_t vector, int error_code) {
     // Identify whether this is an exception or an external interrupt
-    kprintf("isr happened: vector: %llu, error_code: 0x%lx\n", vector, error_code);
+    // kprintf("isr happened: vector: %llu, error_code: 0x%lx\n", vector, error_code);
     if (vector < 32) {
         // CPU exception
         const char *excName = exception_names[vector];
-        kprintf("\n[EXCEPTION] CPU Exception %u: %s\n", vector, excName ? excName : "Unknown");
+        kprintf("\n[EXCEPTION] CPU Exception %u: %s, code: %llu\n", vector, excName ? excName : "Unknown", error_code);
         if (vector == 14) {
             // Example: for Page Fault (vector 14), print CR2 or related info if accessible
             uintptr_t fault_addr;

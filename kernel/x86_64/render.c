@@ -13,7 +13,7 @@
 #define CHAR_HEIGHT      8
 
 // These come from your boot_info_v2 or wherever you store framebuffer info
-#define WIDTH            boot_info_v2->fb_pixel_format
+#define WIDTH            boot_info_v2->fb_width
 #define HEIGHT           boot_info_v2->fb_height
 #define FB_SIZE          boot_info_v2->fb_size
 

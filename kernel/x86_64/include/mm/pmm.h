@@ -68,4 +68,8 @@ uintptr_t kheap_phys_addr(void);
 
 __ref page_t *alloc_cow_pages(page_t *pages);
 
+void print_kheap_info(void);
+
+void print_all_heap_blocks(void);
+
 #endif // _PMM_H

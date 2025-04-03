@@ -62,6 +62,12 @@
         "rope": "c",
         "chrono": "c",
         "future": "c",
-        "init.h": "c"
+        "init.h": "c",
+        "wm.h": "c",
+        "ahci.h": "c",
+        "block_device.h": "c",
+        "*.x": "c",
+        "vfs.h": "c",
+        "cpu_features.h": "c"
     }
 }

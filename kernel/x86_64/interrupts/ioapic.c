@@ -5,7 +5,7 @@
 #include <printf.h>
 #include <panic.h>
 #include <io.h>
-#include <cpu.h>
+#include <cpu/cpu.h>
 #include <interrupts/lapic.h>
 
 // Global pointers for accessing the I/O APIC registers.

@@ -142,10 +142,10 @@ static buddy_allocator_t global_buddy;  // used for buddy-style physical allocat
 void pmm_init(void* memoryMap, uint64_t memoryMapSize, uint64_t memoryMapDescSize) {
     kprintf("Initializing PMM with memory map size: %llu bytes\n", boot_info_v2->mem_map.size);
 
-    uint64_t total_memory = 0;
-    uint64_t total_memory_free = 0;
-    uint64_t total_memory_used = 0;
-    uint64_t total_memory_reserved = 0;
+    total_memory = 0;
+    total_memory_free = 0;
+    total_memory_used = 0;
+    total_memory_reserved = 0;
 
     void* largestFreeMemorySegment = NULL;
     uint64_t largestFreeMemorySegmentSize = 0;
@@ -262,11 +262,60 @@ void *mm_early_map_pages_reserved(uintptr_t phys_addr, size_t count, uint32_t vm
 
 mm_heap_t kheap;
 
+void print_kheap_info(void) {
+    kprintf("Kernel Heap Information:\n");
+    kprintf("  Base Virtual Address: %p\n", (void *)kheap.virt_addr);
+    kprintf("  Physical Address: %p\n", (void *)kheap.phys_addr);
+    kprintf("  Total Heap Size: %zu MB\n", kheap.size/1024);
+    kprintf("  Used Memory: %zu MB\n", kheap.used/1024);
+    
+    float usage_percentage = (kheap.size > 0) ? ((float)kheap.used / kheap.size * 100) : 0.0;
+    kprintf("  Heap Usage: %.2f%%\n", usage_percentage);
+}
+
 /*
  * init_kheap():
  *  Initializes the kernel heap by allocating physical pages using pmm_early_alloc_pages()
  *  and mapping them at a fixed virtual address.
  */
+void init_kheap() {
+    // Calculate total number of pages in the kernel heap.
+    size_t total_pages = SIZE_TO_PAGES(KERNEL_HEAP_SIZE);
+    size_t page_count = total_pages;
+    uintptr_t phys_addr = pmm_early_alloc_pages(total_pages);
+    uintptr_t virt_addr = KERNEL_HEAP_VA;
+
+    // Map using big pages if possible.
+    if (KERNEL_HEAP_SIZE >= BIGPAGE_SIZE && is_aligned(phys_addr, BIGPAGE_SIZE)) {
+        uintptr_t num_bigpages = KERNEL_HEAP_SIZE / BIGPAGE_SIZE;
+        // Calculate how many standard pages are equivalent to a big page.
+        size_t pages_per_bigpage = BIGPAGE_SIZE / PAGE_SIZE;
+        size_t bigpages_used = num_bigpages * pages_per_bigpage;
+        
+        // Map the big pages.
+        early_map_entries(virt_addr, phys_addr, num_bigpages, VM_RDWR | VM_HUGE_2MB);
+        phys_addr += num_bigpages * BIGPAGE_SIZE;
+        virt_addr += num_bigpages * BIGPAGE_SIZE;
+        
+        // Update the remaining page count.
+        page_count = total_pages - bigpages_used;
+    }
+
+    // Map the remaining pages (if any) with normal page mapping.
+    if (page_count > 0) {
+        early_map_entries(virt_addr, phys_addr, page_count, VM_RDWR);
+    }
+    
+    memset(&kheap, 0, sizeof(mm_heap_t));
+    kheap.phys_addr = phys_addr;
+    kheap.virt_addr = KERNEL_HEAP_VA;
+    kheap.size = KERNEL_HEAP_SIZE;
+    kheap.used = 0;
+    kheap.last_chunk = NULL;
+    LIST_INIT(&kheap.chunks);
+    kprintf("initialized kernel heap\n");
+}
+/*
 void init_kheap() {
     size_t page_count = SIZE_TO_PAGES(KERNEL_HEAP_SIZE);
     uintptr_t phys_addr = pmm_early_alloc_pages(page_count);
@@ -290,6 +339,7 @@ void init_kheap() {
     LIST_INIT(&kheap.chunks);
     kprintf("initialized kernel heap\n");
 }
+    */
 
 /*
  * __kmalloc():
@@ -628,4 +678,41 @@ __ref page_t *alloc_cow_pages(page_t *pages) {
 
 void print_buddy_debug() {
   buddy_debug_print(&global_buddy);
+}
+
+void print_all_heap_blocks(void) {
+    // Starting address of the kernel heap and its overall end address.
+    uintptr_t current_addr = kheap.virt_addr;
+    uintptr_t heap_end = kheap.virt_addr + kheap.size;
+    kprintf("Kernel Heap Blocks (Base: %p, Heap End: %p):\n", 
+            (void*)kheap.virt_addr, (void*)heap_end);
+
+    // Iterate over the entire heap memory region.
+    while (current_addr < heap_end) {
+        // Check if the current block is a hole marker.
+        // A hole marker is identified by the first 2 bytes being HOLE_MAGIC.
+        uint16_t marker = ((uint16_t*) current_addr)[0];
+        if (marker == HOLE_MAGIC) {
+            // Read the hole size stored right after the marker.
+            uint16_t hole_size = ((uint16_t*) current_addr)[1];
+            kprintf("Hole Block: Start = %p, End = %p, Size = %u bytes\n",
+                    (void*) current_addr, (void*)(current_addr + hole_size), hole_size);
+            current_addr += hole_size;  // Advance by the size of the hole.
+        } else {
+            // Otherwise, we expect a valid mm_chunk_t here.
+            mm_chunk_t *chunk = (mm_chunk_t*) current_addr;
+            if (chunk->magic != CHUNK_MAGIC) {
+                kprintf("Error: Invalid chunk magic at address %p. Stopping scan.\n", (void*) current_addr);
+                break;
+            }
+            // The total block size includes the header plus the data.
+            size_t total_chunk_size = sizeof(mm_chunk_t) + chunk->size;
+            kprintf("Chunk Block: Start = %p, End = %p, Data Size = %zu bytes, Status = %s\n",
+                    (void*) current_addr,
+                    (void*)(current_addr + total_chunk_size),
+                    chunk->size,
+                    chunk->free ? "FREE" : "IN USE");
+            current_addr += total_chunk_size;  // Advance to the next block.
+        }
+    }
 }

@@ -44,7 +44,7 @@ address_space_t *cur_space = NULL;
 
 /* Helper macros for debugging */
 #ifndef DEBUG_VM
-#define DEBUG_VM 1
+#define DEBUG_VM 0
 #endif
 
 #if DEBUG_VM
@@ -52,6 +52,8 @@ address_space_t *cur_space = NULL;
 #else
 #define dvm(fmt, ...)
 #endif
+
+#define DEBUG(fmt, ...) dvm(fmt, ##__VA_ARGS__)
 
 /*
  * Predefined kernel heap virtual address and size.
@@ -103,41 +105,40 @@ static void remove_vm_mapping(address_space_t *space, vm_mapping_t *vm) {
 }
 
 static void vm_fork_internal(vm_mapping_t *vm, vm_mapping_t *new_vm) {
-    kprintf("[DEBUG] Entering vm_fork_internal: vm=%p, new_vm=%p, vm->type=%d\n", vm, new_vm, vm->type);
+    DEBUG("[DEBUG] Entering vm_fork_internal: vm=%p, new_vm=%p, vm->type=%d\n", vm, new_vm, vm->type);
     bool shared = new_vm->flags & VM_SHARED;
-    kprintf("[DEBUG] New mapping shared flag: %s\n", shared ? "true" : "false");
+    DEBUG("[DEBUG] New mapping shared flag: %s\n", shared ? "true" : "false");
 
     switch (vm->type) {
       case VM_TYPE_RSVD:
-          kprintf("[DEBUG] vm->type is VM_TYPE_RSVD. No further action required.\n");
+          DEBUG("[DEBUG] vm->type is VM_TYPE_RSVD. No further action required.\n");
           break;
       case VM_TYPE_PHYS:
-          kprintf("[DEBUG] vm->type is VM_TYPE_PHYS. Copying physical mapping: %p\n", vm->vm_phys);
+          DEBUG("[DEBUG] vm->type is VM_TYPE_PHYS. Copying physical mapping: %p\n", vm->vm_phys);
           new_vm->vm_phys = vm->vm_phys;
           break;
       case VM_TYPE_PAGE:
-          kprintf("[DEBUG] vm->type is VM_TYPE_PAGE. Allocating copy-on-write pages from %p\n", vm->vm_pages);
+          DEBUG("[DEBUG] vm->type is VM_TYPE_PAGE. Allocating copy-on-write pages from %p\n", vm->vm_pages);
           new_vm->vm_pages = alloc_cow_pages(vm->vm_pages);
-          kprintf("[DEBUG] Allocated COW pages: %p\n", new_vm->vm_pages);
+          DEBUG("[DEBUG] Allocated COW pages: %p\n", new_vm->vm_pages);
           break;
       case VM_TYPE_FILE:
-          kprintf("[DEBUG] vm->type is VM_TYPE_FILE. File mapping fork unimplemented, invoking panic.\n");
+          DEBUG("[DEBUG] vm->type is VM_TYPE_FILE. File mapping fork unimplemented, invoking panic.\n");
           panic("unimplemented: new_vm->vm_file = vm_file_fork(vm->vm_file);");
           break;
       default:
-          kprintf("[ERROR] vm_fork_internal: Invalid mapping type %d\n", vm->type);
+          DEBUG("[ERROR] vm_fork_internal: Invalid mapping type %d\n", vm->type);
           panic("vm_fork_internal: invalid mapping type");
     }
 
-    kprintf("[DEBUG] Exiting vm_fork_internal. new_vm updated successfully.\n");
-        for (;;);
+    DEBUG("[DEBUG] Exiting vm_fork_internal. new_vm updated successfully.\n");
 }
 
 static vm_mapping_t *vm_struct_alloc(enum vm_type type, uint32_t vm_flags, uintptr_t vaddr, size_t size, size_t virt_size) {
-    kprintf("[DEBUG] Allocating vm_struct: type=%d, flags=0x%x, vaddr=0x%lx, size=%zu, virt_size=%zu\n", type, vm_flags, vaddr, size, virt_size);
+    DEBUG("[DEBUG] Allocating vm_struct: type=%d, flags=0x%x, vaddr=0x%lx, size=%zu, virt_size=%zu\n", type, vm_flags, vaddr, size, virt_size);
     vm_mapping_t *vm = kmallocz(sizeof(vm_mapping_t));
     if (!vm) {
-        kprintf("[ERROR] vm_struct_alloc: kmallocz failed to allocate memory for vm mapping.\n");
+        DEBUG("[ERROR] vm_struct_alloc: kmallocz failed to allocate memory for vm mapping.\n");
         return NULL;
     }
     vm->type = type;
@@ -281,7 +282,6 @@ static int is_region_free(address_space_t *space, uintptr_t start, size_t size) 
 static uintptr_t find_free_region(address_space_t *space, size_t size, uintptr_t hint) {
     uintptr_t candidate = (hint < space->min_addr) ? space->min_addr : hint;
     while (candidate + size <= space->max_addr) {
-        kprintf("FD");
         if (is_region_free(space, candidate, size))
             return candidate;
         vm_mapping_t *vm;
@@ -475,7 +475,6 @@ static int vmap_internal(address_space_t *space,
                          const char *name,
                          void *data,
                          uintptr_t *out_vaddr) {
-                            kprintf("\n\nHINT: %llx\n\n\n", hint);
     /* Align sizes */
     size = ALIGN_UP(size, PAGE_SIZE);
     vm_size = ALIGN_UP(vm_size, PAGE_SIZE);
@@ -492,7 +491,6 @@ static int vmap_internal(address_space_t *space,
     uintptr_t virt_base = 0;
 
     if (vm_flags & VM_FIXED) {
-        kprintf("FIXED");
         if (vm_flags & VM_STACK) {
             /* For fixed stack mappings, add a guard page at the bottom */
             virt_size += PAGE_SIZE;
@@ -508,9 +506,7 @@ static int vmap_internal(address_space_t *space,
         }
     } else {
         /* Dynamic mapping: choose a best hint and search for a free region */
-        kprintf("hint1: %llx\n", hint);
         hint = choose_best_hint(hint, vm_flags);
-        kprintf("hint: %llx\n", hint);
         if (vm_flags & VM_STACK) {
             virt_size += PAGE_SIZE;  /* guard page */
             virt_off = PAGE_SIZE;

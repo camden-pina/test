@@ -254,6 +254,27 @@ int buddy_alloc_at(buddy_allocator_t *buddy, int order, uint64_t desired_phys_ad
                 uint64_t current_index = block_index;
                 for (int split_order = higher_order - 1; split_order >= order; split_order--) {
                     uint64_t half_size = 1ULL << split_order;
+                    if (relative_index < current_index + half_size) {
+                        // Desired block is in the left half.
+                        // Add the right half to free list.
+                        buddy_block_t *right = kmalloc(sizeof(buddy_block_t));
+                        right->index = current_index + half_size;
+                        right->next = buddy->free_lists[split_order];
+                        buddy->free_lists[split_order] = right;
+                        // current_index remains unchanged.
+                    } else {
+                        // Desired block is in the right half.
+                        // Add the left half to free list.
+                        buddy_block_t *left = kmalloc(sizeof(buddy_block_t));
+                        left->index = current_index;
+                        left->next = buddy->free_lists[split_order];
+                        buddy->free_lists[split_order] = left;
+                        current_index = current_index + half_size;
+                    }
+                }
+/*
+                for (int split_order = higher_order - 1; split_order >= order; split_order--) {
+                    uint64_t half_size = 1ULL << split_order;
 
                     buddy_block_t *right = kmalloc(sizeof(buddy_block_t));
                     right->index = current_index + half_size;
@@ -268,6 +289,7 @@ int buddy_alloc_at(buddy_allocator_t *buddy, int order, uint64_t desired_phys_ad
                         current_index = current_index + half_size;
                     }
                 }
+                    */
 
                 return current_index + buddy->base; // final block index (absolute)
             }

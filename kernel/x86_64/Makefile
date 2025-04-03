@@ -9,7 +9,8 @@ CC  := $(CROSS_COMPILE)gcc
 LD  := $(CROSS_COMPILE)gcc
 
 # Compiler flags.
-CFLAGS  := -g -std=c23 -I ./lib/lai/include -I./include -mcmodel=large -mno-red-zone \
+CFLAGS  := -msse2 -O3 -g \
+			-std=c23 -I ./lib/lai/include -I./include -mcmodel=large -mno-red-zone \
 			-fno-stack-protector -fno-omit-frame-pointer -fno-builtin-memset \
 			-Wall -MMD -ffreestanding -nostdlib -Werror=int-conversion -m64
 

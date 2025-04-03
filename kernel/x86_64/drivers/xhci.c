@@ -23,7 +23,6 @@ static volatile uint8_t last_cmd_slot      = 0;
 atomic_bool awaiting_transfer = ATOMIC_VAR_INIT(false);
 static volatile uint8_t transfer_comp_code = 0;
 
-#define FIXED_VIRT_BASE 0xFFFFFF8000D00000ULL
 #define PAGE_SIZE 4096
 #define MEMORY_BARRIER() __asm__ __volatile__ ("mfence" ::: "memory")
 

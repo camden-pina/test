@@ -78,6 +78,8 @@ image: $(TARGET_BOOT) $(TARGET_KERNEL)
 		sudo cp $(TARGET_KERNEL) $(MNT_DIR)/ModernOS/$(TARGET_KERNEL); \
 		sudo cp lib/fonts/dfltfont.psf $(MNT_DIR)/ModernOS/fonts; \
 		sudo cp config.ini $(MNT_DIR)/ModernOS/config.ini; \
+		sudo cp hello.txt $(MNT_DIR)/hello.txt; \
+		sudo cp wallpaper1.bmp $(MNT_DIR)/wp.bmp; \
 		sync; \
 		sudo umount $(MNT_DIR); \
 		sudo losetup -d $$LOOPDEV; \
@@ -94,12 +96,12 @@ run-serial:
 	@echo "==> Launching QEMU for $(ARCH)..."
 ifeq ($(ARCH),x86_64)
 	qemu-system-x86_64 \
-  -cpu qemu64 \
+  -cpu Skylake-Server-IBRS,-avx512f,-avx512dq,-avx512cd,-avx512bw,-avx512vl \
   -machine q35 \
   -smp 2 \
   -m 2G \
-  -bios "$(OVMF)" \
-  -drive file="$(DISK_IMG)",if=ide \
+  -bios "./RELEASEX86_64_OVMF.fd" \
+  -drive file="build/OS.img",if=ide,format=raw \
   -device qemu-xhci,id=xhci,bus=pcie.0,addr=0x8 \
   -device usb-kbd,bus=xhci.0 \
   -device usb-tablet,bus=xhci.0 \
@@ -108,15 +110,15 @@ ifeq ($(ARCH),x86_64)
   -netdev user,id=net0 \
   -chardev stdio,id=char0,logfile=serial.log,signal=off \
   -serial chardev:char0 \
-  -d int,cpu_reset \
   -no-reboot
+
+
 endif
 
 run-compat: 
 	@echo "==> Launching QEMU for $(ARCH)..."
 ifeq ($(ARCH),x86_64)
 	qemu-system-x86_64 \
-  -cpu qemu64 \
   -machine q35 \
   -m 2G \
   -bios "$(OVMF)" \

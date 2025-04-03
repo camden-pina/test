@@ -5,7 +5,7 @@
 #include <mm/pmm.h>    /* kmalloc, kfree */
 #include <config.h>
 #include <thread.h>
-#include <cpu.h>
+#include <cpu/cpu.h>
 
 /******************************************************************************
  * Per-CPU scheduling structures

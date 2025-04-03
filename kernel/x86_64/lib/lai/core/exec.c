@@ -2006,6 +2006,7 @@ static lai_api_error_t lai_exec_parse(int parse_mode, lai_state_t *state) {
         if (instance->trace & LAI_TRACE_OP)
             path = lai_stringify_amlname(&amln);
 
+        lai_warn("TEST");
         if (parse_mode == LAI_DATA_MODE) {
             if (instance->trace & LAI_TRACE_OP)
                 lai_debug("parsing name %s [@ 0x%lx]", path, table_pc);

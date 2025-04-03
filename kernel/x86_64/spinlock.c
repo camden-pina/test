@@ -1,5 +1,5 @@
 #include "spinlock.h"
-#include <cpu.h>  /* disable_interrupts(), enable_interrupts() */
+#include <cpu/cpu.h>  /* disable_interrupts(), enable_interrupts() */
 #include "config.h"
 
 /* 
