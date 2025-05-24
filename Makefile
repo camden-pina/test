@@ -80,6 +80,7 @@ image: $(TARGET_BOOT) $(TARGET_KERNEL)
 		sudo cp config.ini $(MNT_DIR)/ModernOS/config.ini; \
 		sudo cp hello.txt $(MNT_DIR)/hello.txt; \
 		sudo cp wallpaper1.bmp $(MNT_DIR)/wp.bmp; \
+		sudo cp init.o $(MNT_DIR)/init.o; \
 		sync; \
 		sudo umount $(MNT_DIR); \
 		sudo losetup -d $$LOOPDEV; \
@@ -110,7 +111,8 @@ ifeq ($(ARCH),x86_64)
   -netdev user,id=net0 \
   -chardev stdio,id=char0,logfile=serial.log,signal=off \
   -serial chardev:char0 \
-  -no-reboot
+  -no-reboot \
+  -no-shutdown
 
 
 endif
@@ -183,7 +185,13 @@ umount-img:
 export:
 	$(shell export PATH = home/camdenpina/Documents/test/toolchain/opt/cross/bin:$(PATH))
 
-rrk: clean-kernel all run-serial
+libc:
+	make -C lib/libc clean
+	$(shell rm lib/libc/examples/hello.elf)
+	make -C lib/libc examples/hello.elf
+	mv lib/libc/examples/hello.elf ./init.o
+
+rrk: clean-kernel libc all run-serial
 
 ################################################################################
 # Clean Up Build Artifacts

@@ -55,6 +55,18 @@ uintptr_t get_default_ap_pml4();
 void *ioremap(uintptr_t phys_addr, size_t size, char *name);
 void iounmap(void *addr, size_t size);
 
+/*
+ * clone_kernel_space: Clone the kernel space mappings into a new page table.
+ *
+ * This function assumes that kernel mappings are located in the upper half of the
+ * PML4 (i.e. indices 256 to 511). It copies those entries from the current page table
+ * (which contains the shared kernel mappings) into the new page table provided.
+ *
+ * This is crucial so that new user processes can correctly reference kernel routines
+ * and data without needing separate copies of the kernel mappings.
+ */
+uintptr_t clone_kernel_space(uint64_t *new_pml4);
+
 #ifdef __cplusplus
 }
 #endif

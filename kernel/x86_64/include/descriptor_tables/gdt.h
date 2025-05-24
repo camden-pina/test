@@ -17,5 +17,6 @@
 #define GDT_TSS 0x18
 
 void gdt_init(void);
+void set_kernel_rsp0(uint64_t rsp);
 
 #endif

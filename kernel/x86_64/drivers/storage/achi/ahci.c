@@ -124,12 +124,14 @@ static void ahci_init_controller(ahci_controller_t *ctl) {
     //                      uint32_t vm_flags, const char *name);
     // We'll pass 0 as 'hint' and some VM flags. Suppose your kernel has VM_FLAGS_KERNEL_RW?
     // Example:
-    uint32_t vm_flags = VM_RDWR; // or whatever fits your design
+    uint32_t vm_flags = VM_RDWR | VM_EXEC; // or whatever fits your design
     uintptr_t abar_virt = vmap_phys((uintptr_t)abar_phys,
                                     0,         // no particular hint
                                     (size_t)abar_size,
                                     vm_flags,
                                     "ahci_abar");
+
+                                    vm_print_address_space();
     if (!abar_virt) {
         kprintf("AHCI: Failed to map ABAR.\n");
         return;

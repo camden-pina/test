@@ -23,7 +23,7 @@ void *map_physical_region(uintptr_t phys_addr, size_t size, uint32_t vm_flags) {
     // Round up size to page boundary.
     size_t pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
     kprintf("phys_addr: %llx\n", phys_addr);
-    void *mapped = (void *)vmap_phys(phys_addr, 0, pages * PAGE_SIZE, vm_flags, "msi table");
+    void *mapped = (void *)vmap_phys(phys_addr, 0, pages * PAGE_SIZE, vm_flags | VM_EXEC, "msi table");
 
     return mapped;
 }

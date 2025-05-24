@@ -130,4 +130,6 @@ void kvfprintf(const char *format, va_list args);
  */
 int ksnprintf(char *str, size_t size, const char *format, ...);
 
+void turtle();
+
 #endif

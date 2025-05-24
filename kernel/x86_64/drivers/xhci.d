@@ -6,4 +6,4 @@ drivers/xhci.o: drivers/xhci.c include/drivers/xhci.h \
  include/descriptor_tables/idt.h include/descriptor_tables/isr.h \
  include/descriptor_tables/../kernel.h include/interrupts/lapic.h \
  include/mm/pgtable.h include/percpu.h include/msi.h include/io.h \
- include/timer.h include/mm/vmem.h include/thread.h include/config.h
+ include/timer.h include/mm/vmem.h include/thread.h

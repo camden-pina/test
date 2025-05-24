@@ -68,6 +68,11 @@
         "block_device.h": "c",
         "*.x": "c",
         "vfs.h": "c",
-        "cpu_features.h": "c"
+        "cpu_features.h": "c",
+        "string": "c",
+        "format": "c",
+        "elf_loader.h": "c",
+        "syscall.h": "c",
+        "unistd.h": "c"
     }
 }

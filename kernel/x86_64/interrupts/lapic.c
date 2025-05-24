@@ -227,7 +227,7 @@ struct apic_device *get_apic_by_id(uint8_t id) {
   }
 
 void remap_apic_registers(void *data) {
-    apic_base = vmap_phys(APIC_BASE_PA, 0, PAGE_SIZE, VM_WRITE | VM_NOCACHE, "apic");
+    apic_base = vmap_phys(APIC_BASE_PA, 0, PAGE_SIZE, VM_WRITE | VM_NOCACHE | VM_EXEC, "apic");
   
     struct apic_device *apic;
     LIST_FOREACH(apic, &apics, list) {

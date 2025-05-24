@@ -293,7 +293,7 @@ void init_kheap() {
         size_t bigpages_used = num_bigpages * pages_per_bigpage;
         
         // Map the big pages.
-        early_map_entries(virt_addr, phys_addr, num_bigpages, VM_RDWR | VM_HUGE_2MB);
+        early_map_entries(virt_addr, phys_addr, num_bigpages, VM_RDWR | VM_HUGE_2MB | VM_EXEC);
         phys_addr += num_bigpages * BIGPAGE_SIZE;
         virt_addr += num_bigpages * BIGPAGE_SIZE;
         
@@ -303,7 +303,7 @@ void init_kheap() {
 
     // Map the remaining pages (if any) with normal page mapping.
     if (page_count > 0) {
-        early_map_entries(virt_addr, phys_addr, page_count, VM_RDWR);
+        early_map_entries(virt_addr, phys_addr, page_count, VM_RDWR | VM_EXEC);
     }
     
     memset(&kheap, 0, sizeof(mm_heap_t));
@@ -469,7 +469,7 @@ void *pmm_alloc(void) {
         panic("pmm_alloc: out of physical pages!\n");
     }
     uintptr_t vaddr = next_pmm_va;
-    const uint32_t vm_flags = VM_WRITE | VM_READ | VM_NOCACHE;  
+    const uint32_t vm_flags = VM_WRITE | VM_READ | VM_NOCACHE | VM_EXEC;  
     early_map_entries(vaddr, paddr, 1, vm_flags);
     memset((void*)vaddr, 0, PAGE_SIZE);
     next_pmm_va += PAGE_SIZE;
@@ -526,7 +526,7 @@ void *dma_alloc_coherent(size_t size, dma_addr_t *dma_handle) {
         panic("dma_alloc_coherent: out of physical pages!");
     }
     uintptr_t vaddr = next_pmm_va;
-    const uint32_t vm_flags = VM_WRITE | VM_READ | VM_NOCACHE;
+    const uint32_t vm_flags = VM_WRITE | VM_READ | VM_NOCACHE | VM_EXEC;
     early_map_entries(vaddr, paddr, pages, vm_flags);
     memset((void *)vaddr, 0, pages * PAGE_SIZE);
     next_pmm_va += pages * PAGE_SIZE;

@@ -221,7 +221,7 @@ syscall:
     syscall
 
 # Other
-.globl get_cpu_id
+# .globl get_cpu_id
 get_cpu_id:
     movl $1, %eax       # Set EAX = 1 to request CPU info.
     cpuid               # Execute CPUID. After this:

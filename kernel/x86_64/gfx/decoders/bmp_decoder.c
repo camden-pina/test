@@ -100,43 +100,33 @@ BMPImage* bmp_decode(const char *dfile_path) {
     }
 
     uint32_t total_read = 0;
-int bytes_read = 0;
-int chunk_size = 4096;  // you can adjust the chunk size
+    int bytes_read = 0;
+    int chunk_size = 4096;  // you can adjust the chunk size
 
-// Read until EOF or until we've read file_size bytes.
-kprintf("file_size: %llu\n", file_size);
-while (total_read < file_size) {
-    int to_read = (file_size - total_read < chunk_size) ? file_size - total_read : chunk_size;
-    bytes_read = vfs_read(file, buffer + total_read, to_read);
-    if (bytes_read < 0) {
-        kprintf("Error reading BMP file '%s'\n", file_path);
-        kfree(buffer);
-        vfs_close(file);
-        return NULL;
+    // Read until EOF or until we've read file_size bytes.
+    kprintf("file_size: %llu\n", file_size);
+    while (total_read < file_size) {
+        int to_read = (file_size - total_read < chunk_size) ? file_size - total_read : chunk_size;
+        bytes_read = vfs_read(file, buffer + total_read, to_read);
+        if (bytes_read < 0) {
+            kprintf("Error reading BMP file '%s'\n", file_path);
+            kfree(buffer);
+            vfs_close(file);
+            return NULL;
+        }
+        // Break if EOF is reached
+        if (bytes_read == 0) {
+            break;
+        }
+        // kprintf("total_read: %llu\n", total_read);
+        total_read += bytes_read;
     }
-    // Break if EOF is reached
-    if (bytes_read == 0) {
-        break;
-    }
-    // kprintf("total_read: %llu\n", total_read);
-    total_read += bytes_read;
-}
 
-if (total_read < file_size) {
-    kprintf("Warning: Expected %u bytes, but only read %u bytes from '%s'\n",
+    if (total_read < file_size) {
+        kprintf("Warning: Expected %u bytes, but only read %u bytes from '%s'\n",
             file_size, total_read, file_path);
-}
-
-/*
-    // Read the BMP file (this example reads only the first chunk).
-    int bytes_read = vfs_read(file, buffer, chunk_size);
-    if (bytes_read < 0) {
-        kprintf("Error reading BMP file '%s'\n", file_path);
-        kfree(buffer);
-        vfs_close(file);
-        return NULL;
     }
-        */
+
     // Do BMP decoding here using the read data...
     // For now, just print the first few bytes as a placeholder.
     kprintf("BMP file '%s' read %d bytes. First byte: 0x%02x\n", 

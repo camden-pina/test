@@ -222,11 +222,18 @@ typedef struct vm_desc {
 #define KERNEL_SPACE_END    0xFFFFFFFFFFFFFFFFULL
 
 #define FRAMEBUFFER_VA      0xFFFFBFFF00000000ULL
-#define KERNEL_HEAP_VA      0xFFFFFF8000400000ULL // 100mb till ioremap_base
-#define IOREMAP_BASE        0xFFFFFF8006C00000ULL // 2mb till kernel reserved va // 0xFFFFFF8000A40000ULL // 0xFFFFFF8000A00000ULL
-#define KERNEL_RESERVED_VA  0xFFFFFF8006E00000ULL // 0xFFFFFF8000C40000ULL // 0xFFFFFF8000C00000ULL
+#define KERNEL_HEAP_VA      0xFFFFFF8000400000ULL
+#define IOREMAP_BASE        0xFFFFFF8006C00000ULL
+#define KERNEL_RESERVED_VA  0xFFFFFF8006E00000ULL
 
 #define KERNEL_HEAP_SIZE   (100 * SIZE_1MB)
 #define KERNEL_STACK_SIZE  SIZE_16KB
+
+// Define the top of the user stack to be at the highest user-space address.
+#define USER_STACK_TOP    0x7ffffffffff0
+
+// Recommended user stack size: 8MB (commonly used in Linux).
+#define USER_STACK_SIZE   (8 * SIZE_1MB)
+
 
 #endif

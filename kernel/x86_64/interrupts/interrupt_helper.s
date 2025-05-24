@@ -2,55 +2,60 @@
     .globl isr_common_stub
     .type isr_common_stub,@function
 isr_common_stub:
-    # Save registers that might be clobbered
-    pushq %rax
-    pushq %rcx
-    pushq %rdx
-    pushq %rbx
-    pushq %rbp
-    pushq %rsi
-    pushq %rdi
-    pushq %r8
-    pushq %r9
-    pushq %r10
-    pushq %r11
-    pushq %r12
-    pushq %r13
+    // The CPU automatically pushed:
+    //    [RIP, CS, RFLAGS] (and RSP/SS if a privilege change occurred)
+    // The ISR macros already pushed the error code and vector.
+    // So the current stack layout (from the top) is:
+    //   error code, vector, (hardware-saved RIP, CS, RFLAGS, [RSP, SS if applicable])
+    
+    // Now push the general purpose registers.
+    pushq %r15           // will be saved after the hardware frame.
     pushq %r14
-    pushq %r15
+    pushq %r13
+    pushq %r12
+    pushq %r11
+    pushq %r10
+    pushq %r9
+    pushq %r8
+    pushq %rdi
+    pushq %rsi
+    pushq %rbp
+    pushq %rbx
+    pushq %rdx
+    pushq %rcx
+    pushq %rax
 
-    # At this point, the stack layout is as follows:
-    #   [vector number] (pushed by our ISR stub macro)
-    #   [error code]    (either pushed as a dummy or automatically by CPU)
-    # then the saved registers (15*8 = 120 bytes).
-    # We load the two arguments for isr_common:
-    #   Offset for vector: 120 bytes (saved regs) + 8 bytes = 128 bytes from %rsp
-    #   Offset for error code: 120 bytes from %rsp
-    movq 120(%rsp), %rdi    # First argument: vector number
-    movl 128(%rsp), %esi    # Second argument: error code (32-bit)
+    // At this point, the complete frame on the stack is:
+    //  [error code]        <-- pushed by ISR macro
+    //  [vector]            <-- pushed by ISR macro
+    //  [RIP, CS, RFLAGS, ...] <-- automatically pushed by CPU on exception entry
+    //  [R15, R14, ... RAX]  <-- just pushed in the stub
+
+    // Pass pointer to the frame (pointed by current RSP) to C handler.
+    movq %rsp, %rdi
     call isr_common
 
-    # Restore registers (in reverse order)
-    popq %r15
-    popq %r14
-    popq %r13
-    popq %r12
-    popq %r11
-    popq %r10
-    popq %r9
-    popq %r8
-    popq %rdi
-    popq %rsi
-    popq %rbp
-    popq %rbx
-    popq %rdx
-    popq %rcx
+    // After isr_common returns, restore registers and perform iretq.
     popq %rax
+    popq %rcx
+    popq %rdx
+    popq %rbx
+    popq %rbp
+    popq %rsi
+    popq %rdi
+    popq %r8
+    popq %r9
+    popq %r10
+    popq %r11
+    popq %r12
+    popq %r13
+    popq %r14
+    popq %r15
 
-    # Clean up the stack: remove the vector and error code pushed by the stub
+    // Remove the error code and vector that were pushed by the ISR macros.
     addq $16, %rsp
 
-    # Return from interrupt
+    // Return from the interrupt.
     iretq
 
 # Original macros for generating ISR stubs
@@ -63,6 +68,7 @@ isr\num:
     pushq $\num          # Push the interrupt vector number
     jmp isr_common_stub
 .endm
+
 
 .macro ISR_ERR num
     .globl isr\num

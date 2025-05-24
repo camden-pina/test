@@ -13,6 +13,10 @@
 static void *impl_arg;
 static int (*kprintf_puts_impl)(void *, const char *);
 
+void turtle() {
+
+}
+
 static struct early_kprintf {
   // mtx_t lock;
   uint16_t port;

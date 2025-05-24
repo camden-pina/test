@@ -1,41 +1,45 @@
-#ifndef SCHED_H
-#define SCHED_H
+#ifndef SCHEDULER_H
+#define SCHEDULER_H
 
 #include <stdint.h>
-#include "config.h"
-#include "thread.h"
-#include "spinlock.h"
+#include "task.h"
+#include <spinlock.h>
 
-/*
- * The SMP/Single-core scheduler interface.
- * - Per-CPU run queues
- * - schedule() or schedule_on_cpu()
- * - Timer tick for each CPU
- */
+/* Task state flags */
+#define TASK_RUNNING   0  /* Currently running on a CPU */
+#define TASK_READY     1  /* Ready to run, on a runqueue */
+#define TASK_BLOCKED   2  /* Waiting (sleeping or on I/O) */
+#define TASK_ZOMBIE    3  /* Terminated, not yet reaped */
 
-/* Extern global tick if desired */
-extern volatile uint64_t g_global_ticks;
+/* Simple per-CPU runqueue structure */
+struct runqueue {
+   spinlock_t lock;
+    struct task_struct *head;  /* Circular linked list of runnable tasks */
+    struct task_struct *curr;  /* Current running task on this CPU */
+} __attribute__((packed));
 
-/* Initialize the scheduler (for all CPUs or single CPU). */
-void sched_init(void);
+/* Initialize scheduler and idle task for each CPU */
+void scheduler_init(void);
 
-/* Called on each CPU to set up that CPU's local runqueues, idle thread, etc. */
-void sched_init_cpu(int cpu_id);
+/* Preemptive scheduler tick handler (called from timer IRQ) */
+void *schedule_irq(void *context);
 
-/* Start scheduling on this CPU (e.g. after booting the CPU). */
-void sched_start_cpu(int cpu_id);
+/* Voluntary context switch (e.g., yield or blocking) */
+void schedule(void);
 
-/* The main scheduling function for one CPU. 
-   Picks the next thread, context-switches away from current if needed. */
-void schedule_on_cpu(int cpu_id);
+/* Add a task to a CPU runqueue (for a specific CPU or current CPU) */
+void enqueue_task(struct task_struct *task, int cpu);
 
-/* Called by the timer interrupt on each CPU. */
-void scheduler_tick_this_cpu(int cpu_id);
+/* Remove a task from its runqueue (if not running) */
+void dequeue_task(struct task_struct *task, int cpu);
 
-/* Add a thread to the ready queue of a CPU (public so threads can be enqueued). */
-void sched_add_ready_thread(thread_t *t, int cpu_id);
+/* Global runqueue array (one per CPU) */
+extern struct runqueue cpu_runqueue[];
 
-/* Return pointer to idle thread for a CPU */
-thread_t* get_idle_thread(int cpu_id);
+/* Current CPU id getter (stub implementation) */
+int get_cpu_id(void);  /* returns the current CPU index (0 if single-core) */
 
-#endif /* SCHED_H */
+void rq_lock(int cpu);
+void rq_unlock(int cpu);
+
+#endif  /* SCHEDULER_H */

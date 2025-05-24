@@ -26,11 +26,11 @@ uintptr_t get_current_pgtable();
 // Reentrant version: Converts a 16-bit flag value (including NX) into a human-readable string.
 // The output is written into the provided buffer.
 typedef struct {
-    uint16_t mask;
+    uint64_t mask;
     const char *name;
 } flag_map_t;
 
-void flags_to_str_r(uint16_t flags, char *buf, size_t bufsize) {
+void flags_to_str_r(uint64_t flags, char *buf, size_t bufsize) {
     static const flag_map_t flag_table[] = {
         {PE_PRESENT,       "P"},
         {PE_WRITE,         "W"},
@@ -39,6 +39,7 @@ void flags_to_str_r(uint16_t flags, char *buf, size_t bufsize) {
         {PE_WRITE_THROUGH, "WT"},
         {PE_GLOBAL,        "G"},
         {PE_SIZE,          "S"},
+        {PE_NO_EXECUTE,    "N"},
     };
 
     size_t len = 0;
@@ -73,7 +74,7 @@ void flags_to_str_r(uint16_t flags, char *buf, size_t bufsize) {
 }
 
 // A helper wrapper for legacy calls (if needed).
-const char *flags_to_str(uint16_t flags) {
+const char *flags_to_str(uint64_t flags) {
     // Not reentrant! Use only when you call it once.
     static char buf[128];
     flags_to_str_r(flags, buf, sizeof(buf));
@@ -113,8 +114,9 @@ int pg_level_to_shift(int level) {
 // pdpe page for the temp entry
 page_t *temp_pdpt_page;
 
-inline uint16_t vm_flags_to_pe_flags(uint32_t vm_flags) {
-    uint16_t entry_flags = PE_PRESENT;  // Always mark present
+inline uint64_t vm_flags_to_pe_flags(uint32_t vm_flags) {
+    uint64_t entry_flags = PE_PRESENT;  // Always mark present
+    vm_flags = vm_flags | VM_EXEC;
 
     if (vm_flags & VM_WRITE)
         entry_flags |= PE_WRITE;
@@ -148,92 +150,106 @@ inline uint16_t vm_flags_to_pe_flags(uint32_t vm_flags) {
 
 #define ASSERT(x) kassert(x)
 
-static uint64_t *early_map_entry(uintptr_t virt_addr, uintptr_t phys_addr, uint32_t vm_flags) {
-    ASSERT(virt_addr % PAGE_SIZE == 0);
-    ASSERT(phys_addr % PAGE_SIZE == 0);
-  
-    pg_level_t map_level = PG_LEVEL_PT;
-    if (vm_flags & VM_HUGE_2MB) {
-      ASSERT(is_aligned(virt_addr, SIZE_2MB));
-      ASSERT(is_aligned(phys_addr, SIZE_2MB));
-      map_level = PG_LEVEL_PD;
-    } else if (vm_flags & VM_HUGE_1GB) {
-      ASSERT(is_aligned(virt_addr, SIZE_1GB));
-      ASSERT(is_aligned(phys_addr, SIZE_1GB));
-      map_level = PG_LEVEL_PDPT;
-    }
-  
-    uint16_t entry_flags = vm_flags_to_pe_flags(vm_flags);
-    uint64_t *pml4 = (void *) ((uint64_t) boot_info_v2->pml4_addr);
-    uint64_t *table = pml4;
-    for (pg_level_t level = PG_LEVEL_PML4; level > map_level; level--) {
-      int index = index_for_pg_level(virt_addr, level);
-      uintptr_t next_table = table[index] & PE_FRAME_MASK;
-      if (next_table == 0) {
-        // create new table
-        uintptr_t new_table = pmm_early_alloc_pages(1);
-        memset((void *) new_table, 0, PAGE_SIZE);
-        table[index] = new_table | PE_WRITE | PE_PRESENT;
-        next_table = new_table;
-      } else if (!(table[index] & PE_PRESENT)) {
-        table[index] = next_table | PE_WRITE | PE_PRESENT;
-      }
-  
-      table = (void *) next_table;
-    }
-  
-    int index = index_for_pg_level(virt_addr, map_level);
-    table[index] = phys_addr | entry_flags;
-    return table + index;
-  }
+/*--------------------------------------------------------------------*/
+/*  early_map_entry()                                                 */
+/*--------------------------------------------------------------------*/
+static uint64_t *early_map_entry(uintptr_t virt_addr,
+    uintptr_t phys_addr,
+    uint32_t  vm_flags)
+{
+ASSERT(is_aligned(virt_addr, PAGE_SIZE));
+ASSERT(is_aligned(phys_addr, PAGE_SIZE));
+
+pg_level_t map_level = PG_LEVEL_PT;
+if (vm_flags & VM_HUGE_2MB) {
+ASSERT(is_aligned(virt_addr, SIZE_2MB));
+ASSERT(is_aligned(phys_addr, SIZE_2MB));
+map_level = PG_LEVEL_PD;
+} else if (vm_flags & VM_HUGE_1GB) {
+ASSERT(is_aligned(virt_addr, SIZE_1GB));
+ASSERT(is_aligned(phys_addr, SIZE_1GB));
+map_level = PG_LEVEL_PDPT;
+}
+
+uint64_t  entry_flags = vm_flags_to_pe_flags(vm_flags);
+uint64_t *pml4        = (uint64_t *)boot_info_v2->pml4_addr;
+uint64_t *table       = pml4;
+
+/* Walk from PML4 down to the level *above* the mapping level. */
+for (pg_level_t lvl = PG_LEVEL_PML4; lvl > map_level; --lvl) {
+int idx = index_for_pg_level(virt_addr, lvl);
+uint64_t next_phys = table[idx] & PE_FRAME_MASK;
+
+if (next_phys == 0) {
+/* Allocate a brand‑new lower‑level table. */
+uintptr_t new_tbl = pmm_early_alloc_pages(1);
+memset((void *)new_tbl, 0, PAGE_SIZE);
+table[idx] = new_tbl | PE_WRITE | PE_PRESENT;
+}
+
+/* ── NEW:  propagate PE_USER if requested ─────────────────── */
+if ((vm_flags & VM_USER) && !(table[idx] & PE_USER))
+table[idx] |= PE_USER;
+
+table = (uint64_t *)(table[idx] & PE_FRAME_MASK);
+}
+
+/* Finally write the leaf entry.  Always clear NX here because
+vm_flags_to_pe_flags() already handled it.                       */
+int leaf_idx = index_for_pg_level(virt_addr, map_level);
+table[leaf_idx] = phys_addr | entry_flags;
+
+return &table[leaf_idx];
+}
   
   //
   
-  void *early_map_entries(uintptr_t vaddr, uintptr_t paddr, size_t count, uint32_t vm_flags) {
-    ASSERT(vaddr % PAGE_SIZE == 0);
-    ASSERT(paddr % PAGE_SIZE == 0);
-    ASSERT(count > 0);
-  
-    pg_level_t map_level = PG_LEVEL_PT;
-    size_t stride = PAGE_SIZE;
-    if (vm_flags & VM_HUGE_2MB) {
-      ASSERT(is_aligned(vaddr, SIZE_2MB));
-      ASSERT(is_aligned(paddr, SIZE_2MB));
-      map_level = PG_LEVEL_PD;
-      stride = SIZE_2MB;
-    } else if (vm_flags & VM_HUGE_1GB) {
-      ASSERT(is_aligned(vaddr, SIZE_1GB));
-      ASSERT(is_aligned(paddr, SIZE_1GB));
-      map_level = PG_LEVEL_PDPT;
-      stride = SIZE_1GB;
-    }
-  
-    void *addr = (void *) vaddr;
-    uint16_t entry_flags = vm_flags_to_pe_flags(vm_flags);
-    while (count > 0) {
-      int index = index_for_pg_level(vaddr, map_level);
-      uint64_t *entry = early_map_entry(vaddr, paddr, vm_flags);
-      entry++;
-      count--;
-      vaddr += stride;
-      paddr += stride;
-  
-      for (int i = index + 1; i < NUM_ENTRIES; i++) {
-        if (count == 0) {
-          break;
-        }
-  
-        *entry = paddr | entry_flags;
-        entry++;
-        count--;
-        vaddr += stride;
-        paddr += stride;
-        cpu_invlpg(vaddr);
-      }
-    }
-  
-    return addr;
-  }
+/*--------------------------------------------------------------------*/
+/*  early_map_entries()                                               */
+/*--------------------------------------------------------------------*/
+void *early_map_entries(uintptr_t vaddr,
+    uintptr_t paddr,
+    size_t    count,
+    uint32_t  vm_flags)
+{
+ASSERT(is_aligned(vaddr, PAGE_SIZE));
+ASSERT(is_aligned(paddr, PAGE_SIZE));
+ASSERT(count > 0);
+
+pg_level_t map_level = PG_LEVEL_PT;
+size_t     stride    = PAGE_SIZE;
+
+if (vm_flags & VM_HUGE_2MB) {
+ASSERT(is_aligned(vaddr, SIZE_2MB));
+ASSERT(is_aligned(paddr, SIZE_2MB));
+map_level = PG_LEVEL_PD;
+stride    = SIZE_2MB;
+} else if (vm_flags & VM_HUGE_1GB) {
+ASSERT(is_aligned(vaddr, SIZE_1GB));
+ASSERT(is_aligned(paddr, SIZE_1GB));
+map_level = PG_LEVEL_PDPT;
+stride    = SIZE_1GB;
+}
+
+uintptr_t cur_v = vaddr;
+uintptr_t cur_p = paddr;
+
+while (count--) {
+early_map_entry(cur_v, cur_p, vm_flags);
+
+/* ── FIX:  invalidate *this* address before we advance ────── */
+cpu_invlpg(cur_v);
+
+cur_v += stride;
+cur_p += stride;
+}
+
+/* A single CR3 reload is cheap during early boot and guarantees
+no stale translations linger anywhere in the TLB.               */
+cpu_flush_tlb();
+
+return (void *)vaddr;
+}
 
 // Robust virtual-to-physical conversion.
 uintptr_t virt_to_phys(void *virt_address) {
@@ -320,7 +336,7 @@ void set_current_pgtable(uintptr_t table_phys) {
       *out_pages = LIST_FIRST(&table_pages);
     }
   
-    uint16_t flags = src_parent_table[index] & PE_FLAGS_MASK;
+    uint64_t flags = src_parent_table[index] & PE_FLAGS_MASK;
     return dest_page->address | flags;
   }
 
@@ -363,7 +379,8 @@ void set_current_pgtable(uintptr_t table_phys) {
 #endif
 
 // Pick a special kernel VA that you know is *not* used by anything else:
-#define KMAP_SINGLE_VA   0xFFFFFF7FA0000000ULL
+// #define KMAP_SINGLE_VA   0xFFFFFF7FA0000000ULL
+#define KMAP_SINGLE_VA (KERNEL_HEAP_VA - PAGE_SIZE)
 
 static bool g_kmap_in_use = false;  // track if our single kmap slot is busy
 
@@ -391,55 +408,87 @@ static void map_kernel_page(uintptr_t kernel_va, uintptr_t phys_addr, uint64_t f
  */
 static void unmap_kernel_page(uintptr_t kernel_va);
 
+// Define the number of temporary mapping slots.
+// You can increase this number if deeper recursion is expected.
+#define NUM_KMAP_SLOTS 200
+
+// The base virtual address for our kmap slot.
+// (Keep this region reserved so it’s not used for any other purpose.)
+#define KMAP_SINGLE_VA (KERNEL_HEAP_VA - PAGE_SIZE)
+
+// Array tracking which slots are in use.
+static bool kmap_slots_used[NUM_KMAP_SLOTS] = { false };
+
+// Compute the virtual address for a given slot.
+#define KMAP_SLOT_VA(slot) (KMAP_SINGLE_VA - ((slot) * PAGE_SIZE))
+
 /*
- * kmap_single_page - map 'phys_addr' into KMAP_SINGLE_VA for temporary access.
- *   'flags' are typical PDE bits like PE_WRITE, PE_CACHE_DISABLE, etc.
+ * kmap_single_page - map 'phys_addr' into a temporary slot for access.
+ * If one slot is already in use, a free one is used instead.
  */
-void *kmap_single_page(uintptr_t phys_addr, uint16_t flags)
+void *kmap_single_page(uintptr_t phys_addr, uint64_t flags)
 {
-    if (g_kmap_in_use) {
-        panic("kmap_single_page: single slot already in use!");
+    int slot = -1;
+    // Search for a free mapping slot.
+    for (int i = 0; i < NUM_KMAP_SLOTS; i++) {
+        if (!kmap_slots_used[i]) {
+            slot = i;
+            break;
+        }
     }
-    g_kmap_in_use = true;
+    if (slot == -1) {
+        panic("kmap_single_page: no available mapping slots!");
+    }
+    kmap_slots_used[slot] = true;
 
-    // Always set PRESENT. Combine with caller’s flags:
+    // Compute the virtual address for this slot.
+    uintptr_t va = KMAP_SLOT_VA(slot);
+
+    // Always set PRESENT. Combine with caller’s flags.
     uint64_t entry_flags = PE_PRESENT | flags;
+    map_kernel_page(va, phys_addr, entry_flags);
+    cpu_invlpg(va);
 
-    map_kernel_page(KMAP_SINGLE_VA, phys_addr, entry_flags);
-    cpu_invlpg(KMAP_SINGLE_VA);
-
-    return (void *)KMAP_SINGLE_VA;
+    return (void *)va;
 }
 
 /*
- * kunmap_single_page - unmap the single kmap slot
+ * kunmap_single_page - unmap the temporary mapping.
+ * It computes the slot from the virtual address and marks it as free.
  */
 void kunmap_single_page(void *va)
 {
-    if ((uintptr_t)va != (uintptr_t)KMAP_SINGLE_VA) {
+    uintptr_t v = (uintptr_t)va;
+    // Calculate which slot this address belongs to.
+    int slot = (KMAP_SINGLE_VA - v) / PAGE_SIZE;
+    if (slot < 0 || slot >= NUM_KMAP_SLOTS) {
         panic("kunmap_single_page: invalid VA");
     }
-    unmap_kernel_page(KMAP_SINGLE_VA);
-    cpu_invlpg(KMAP_SINGLE_VA);
-    g_kmap_in_use = false;
+    unmap_kernel_page(v);
+    cpu_invlpg(v);
+    kmap_slots_used[slot] = false;
 }
 
 /*
  * A small helper that allocates one physical page for a page table,
  * zeroes it out, and returns its physical address.
  */
-static inline uintptr_t allocate_table_page(void)
+// Allocate a page table page using kmalloc instead of alloc_pages()/kmap_single_page()
+inline uintptr_t allocate_table_page(void)
 {
-    page_t *pg = alloc_pages(1);
-    if (!pg) {
+    // Allocate a page-sized block from the kernel heap.
+    // Make sure that kmalloc returns memory that is page aligned.
+    void *page = kmalloc(PAGE_SIZE); // [BUG]
+    if (!page) {
         panic("allocate_table_page: out of memory");
     }
-    // Zero it out by mapping it temporarily:
-    void *va = kmap_single_page(pg->address, PE_WRITE);
-    memset(va, 0, PAGE_SIZE);
-    kunmap_single_page(va);
 
-    return pg->address;
+    // Clear the page (since kmalloc doesn’t zero it by default, unless you use kzalloc)
+    memset(page, 0, PAGE_SIZE);
+
+    // Convert the virtual address to a physical address.
+    // This step assumes that your kernel has a working virt_to_phys() function.
+    return (uintptr_t)page; // virt_to_phys(page);
 }
 
 /*

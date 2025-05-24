@@ -49,8 +49,8 @@ uintptr_t virt_to_phys(void *virt_address);
 
 uintptr_t get_current_pgtable();
 void set_current_pgtable(uintptr_t table_phys);
-void flags_to_str_r(uint16_t flags, char *buf, size_t bufsize);
-uint16_t vm_flags_to_pe_flags(uint32_t vm_flag);
+void flags_to_str_r(uint64_t flags, char *buf, size_t bufsize);
+uint64_t vm_flags_to_pe_flags(uint32_t vm_flag);
 
   uint64_t recursive_duplicate_pgtable(
     pg_level_t level,
@@ -79,5 +79,7 @@ uint16_t vm_flags_to_pe_flags(uint32_t vm_flag);
  uintptr_t fork_page_tables(page_t **out_pages, bool deepcopy_user);
 
 void init_recursive_pgtable();
+
+uintptr_t allocate_table_page(void);
 
 #endif

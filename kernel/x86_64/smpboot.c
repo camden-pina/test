@@ -72,9 +72,9 @@ int smp_boot_ap(uint32_t id, struct smp_data *smpdata) {
     #define AP_STACK_BASE 0xFFFF800000800000ULL
 
 uintptr_t ap_stack_hint = AP_STACK_BASE + (KERNEL_STACK_SIZE * id);
-void *ap_stack_ptr = (void *) vmap_pages(moveref(stack_pages), ap_stack_hint, KERNEL_STACK_SIZE, VM_READ | VM_WRITE | VM_STACK, "ap stack");
-vm_print_address_space();
+void *ap_stack_ptr = (void *) vmap_pages(moveref(stack_pages), ap_stack_hint, KERNEL_STACK_SIZE, VM_READ | VM_WRITE | VM_STACK | VM_EXEC, "ap stack");
     vm_set_current_space(kernel_space);
+vm_print_address_space();
     kprintf("new cpu stack: %llx\n", ap_stack_ptr);
 
     // void *ap_stack_ptr = (void *) vmap_pages(moveref(stack_pages), 0, KERNEL_STACK_SIZE, VM_WRITE | VM_STACK, "ap stack");
@@ -151,7 +151,7 @@ void smp_init() {
             return;
         }
         kassert(data_page != NULL);
-        data_ptr = (void *)vmap_pages(moveref(data_page), 0, PAGE_SIZE, VM_WRITE | VM_NOCACHE, "smpboot data");
+        data_ptr = (void *)vmap_pages(moveref(data_page), 0, PAGE_SIZE, VM_WRITE | VM_NOCACHE | VM_EXEC, "smpboot data");
         if (!data_ptr) {
             kprintf("ERROR: Failed to map data page to virtual memory!\n");
         }

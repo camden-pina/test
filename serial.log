@@ -1,12 +1,13 @@
 [2J[01;01H[=3h[2J[01;01H[0m[35m[40m[0m[37m[40mBdsDxe: failed to load Boot0001 "UEFI QEMU DVD-ROM QM00005 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x2,0xFFFF,0x0): Not Found
 BdsDxe: loading Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)
 BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)
-[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,712CE11B-83C6-4C40-9050-5AEBC6AB2972,0x800,0x187DF)
+[2J[01;01H[Loader] INFO:     Boot device: PciRoot(0x0)/Pci(0x1F,0x2)/Sata(0x0,0xFFFF,0x0)/HD(1,GPT,8861F3B4-7D12-4FC7-BC71-BEB5FB8ABC12,0x800,0x187DF)
 [Loader] INFO:     Listing directory:
   EFI
   ModernOS
   hello.txt
   wp.bmp
+  init.o
   NvVars
 [Loader] INFO:     Selected graphics device: PciRoot(0x0)/Pci(0x1,0x0)/AcpiAdr(0x80010100)
 [Loader] INFO:     Loading config
@@ -22,12 +23,12 @@ BdsDxe: starting Boot0002 "UEFI QEMU HARDDISK QM00001 " from PciRoot(0x0)/Pci(0x
 [Loader] INFO:     Using graphics mode: 2560x1440
 [Loader] INFO:     Loading kernel
 [Loader] INFO:       phys addr: 0x100000
-[Loader] INFO:       image size: 1455656
-[Loader] INFO:       kernel entry: 0xFFFF80000013D0A1
-[Loader] INFO:       memory size: 733184
+[Loader] INFO:       image size: 1475296
+[Loader] INFO:       kernel entry: 0xFFFF80000013DA02
+[Loader] INFO:       memory size: 679936
 [Loader] INFO:     Loading executable data segment
 [Loader] INFO:       base: 0xFFFF800000100000
-[Loader] INFO:       size: 0xB3000 (179 pages)
+[Loader] INFO:       size: 0xA6000 (166 pages)
 [Loader] INFO:     Found .load_sections section
 [Loader] INFO:       loading section '.init_array.static' __static_init_array
 [Loader] INFO:     Found .boot_data section
@@ -67,11 +68,11 @@ Entry 11: Start=0x7bf4e000, Type=2
 Entry 12: Start=0x7c29d000, Type=8
   [0x7c29d000-0x7e29d000] EFI runtime data (2000)
 Entry 13: Start=0x7e29d000, Type=3
-  [0x7e29d000-0x7e2a1000] reserved (4)
-Entry 14: Start=0x7e2a1000, Type=2
-  [0x7e2a1000-0x7e2b0000] usable (f)
-Entry 15: Start=0x7e2b0000, Type=3
-  [0x7e2b0000-0x7ec41000] reserved (991)
+  [0x7e29d000-0x7e29e000] reserved (1)
+Entry 14: Start=0x7e29e000, Type=2
+  [0x7e29e000-0x7e2ad000] usable (f)
+Entry 15: Start=0x7e2ad000, Type=3
+  [0x7e2ad000-0x7ec41000] reserved (994)
 Entry 16: Start=0x7ec41000, Type=2
   [0x7ec41000-0x7ec42000] usable (1)
 Entry 17: Start=0x7ec42000, Type=3
@@ -143,15 +144,16 @@ registering APIC[0]
 registering APIC[1]
  MADT: I/O APIC ID=0, Addr=0xfec00000, GSI Base=0
 kernel code start: ffff800000100000
-kernel code end: ffff800000153000
-kernel data end: ffff800000173000
+kernel code end: ffff800000154000
+kernel data end: ffff800000166000
 kernel virtual offset: ffff800000000000
 kernel_phys: 100000
-kernel_size: 73000
+kernel_size: 66000
 kernel_vaddr: ffff000000100000
 boot_info_v2: 7f91f000, __kernel_virtual_offset: ffff800000000000, lowmem: 100000
 Current address space mappings:
-  Mapping: null @ 0x0-0x1000, size: 4096 bytes, flags: P U (0x0005) | 0x21020
+flags: 21025
+  Mapping: null1 @ 0x0-0x1000, size: 4096 bytes, flags: P U (0x0005) | 0x21025
 ModernOS (C)
 
 Initializing PCI subsystem...
@@ -192,11 +194,14 @@ PCI: Found 7 PCI device(s)
 Initializing MouseIOAPIC: Mapping IRQ 12 -> IDT vector 44
 Copyright (C) Ideal Technologies Inc.
 Current address space mappings:
-  Mapping: null @ 0x0-0x1000, size: 4096 bytes, flags: P U (0x0005) | 0x21020
-sched_init: Setting up SMP scheduler
+flags: 21025
+  Mapping: null1 @ 0x0-0x1000, size: 4096 bytes, flags: P U (0x0005) | 0x21025
 AHCI: Starting driver initialization...
 AHCI: Found AHCI controller at 00:1f.2
 AHCI: Enabling minimal MSI for device 00:1f.2
+Current address space mappings:
+flags: 21025
+  Mapping: null1 @ 0x0-0x1000, size: 4096 bytes, flags: P U (0x0005) | 0x21025
 AHCI: Identify => Model='QEMU HARDDISK', sectors=102400, sector_size=512
 BlockDev: Registered device 'ahci0' (type=1, sectors=102400)
 AHCI: Port 0 => device registered: ahci0, 102400 sectors, sector=512
@@ -207,17 +212,15 @@ BlockDev: Registered device 'ahci2' (type=1, sectors=0)
 AHCI: Port 2 => device registered: ahci2, 0 sectors, sector=512
 AHCI: Discovered 1 controller(s).
 Kernel: File loaded successfully. Continuing boot...
-Kernel Heap Information:
-  Base Virtual Address: 0xffffff8000400000
-  Physical Address: 0x1500000
-  Total Heap Size: 102400 MB
-  Used Memory: 28803 MB
-  Heap Usage: %f%
-[WM] Framebuffer: 2560x1440, format=2560
+boot_info_v2: ffffc00000001000, __kernel_virtual_offset: ffff800000000000, lowmem: 100000
+Current address space mappings:
+flags: 21025
+  Mapping: null4 @ 0x0-0x1000, size: 4096 bytes, flags: P U (0x0005) | 0x21025
+Loading ELF binary: /init
 Raw disk 'ahci0' with 102400 sectors.
 Device ID: 0, Type: DEV_AHCI, Name: ahci0, Sector Count: 102400, Sector Size: 512
 Device ID: 1, Type: DEV_AHCI, Name: ahci2, Sector Count: 0, Sector Size: 512
-partition_scan: Entering, disk pointer = 0xffffff8002020dc0
+partition_scan: Entering, disk pointer = 0xffffff8002020ce0
 partition_scan: Attempting to read LBA 0...
 partition_scan: block_read returned 0
 partition_scan: First 16 bytes of LBA 0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
@@ -229,7 +232,7 @@ BlockDev: Registered device 'p2' (type=3, sectors=100319)
 Partition: Registered device #2 for LBA range [2048..102366]
 partition_scan found 1 partition(s).
 Attempting to mount FAT32 on device #2 ('p2').
-vfs_mount: mount_point=0xffff80000014163e, dev=0xffffff8002e34ee0, fs_type=0xffff8000001410d6
+vfs_mount: mount_point=0xffff80000014263b, dev=0xffffff800202a0a0, fs_type=0xffff8000001420d0
 
 CHECKPOINT 1
 
@@ -246,40 +249,85 @@ CHECKPOINT 4
 
 CHECKPOINT 5
 VFS: Mounted filesystem 'fat32' at mount point '/drive0'
-FAT32: Looking for component 'wp.bmp' (83 format: 'WP      BMP') in cluster 2
+FAT32: Looking for component 'init' (83 format: 'INIT       ') in cluster 2
 FAT32: Scanned entry at index 0 in cluster 2: 'EFI        ', attr: 0x10
 FAT32: Scanned entry at index 2 in cluster 2: 'MODERNOS   ', attr: 0x10
 FAT32: Scanned entry at index 4 in cluster 2: 'HELLO   TXT', attr: 0x20
 FAT32: Scanned entry at index 6 in cluster 2: 'WP      BMP', attr: 0x20
-FAT32: Matching entry found: 'WP      BMP' at index 6 in cluster 2
-FAT32: Found component 'wp.bmp' in cluster 2 (entry cluster 2, offset 6)
-FAT32: Target file or directory 'wp.bmp' resolved at cluster 2
-FAT32: Open successful. Start cluster: 2961, Size: 11059256 bytes
-BMP file 'wp.bmp' size: 11059256 bytes.
-file_size: 11059256
-BMP file 'wp.bmp' read 56 bytes. First byte: 0x42
-bitmap width: 2560
-bitmap height: 1440
-bfType      = 0x4D42
-bfSize      = 11059256 bytes
-bfOffBits   = 54
-biWidth     = 2560
-biHeight    = 1440
-biBitCount  = 24
-biCompression = 0
-Pixel data starts at offset 54
-Row size: 7680 bytes
-26 12 04 28 12 05 29 12 03 25 0E 00 26 0E 01 2B 13 03 2B 14 05 25 0E 01 25 0E 01 26 10 02 27 10 
-Pixel(0,0): R:01 G:0e B:25 A:ff
-Pixel(1,0): R:05 G:12 B:28 A:ff
-Pixel(2,0): R:07 G:16 B:2d A:ff
-Pixel(0,1): R:03 G:13 B:2b A:ff
-Pixel(1,1): R:05 G:15 B:2e A:ff
-Pixel(2,1): R:01 G:0e B:27 A:ff
-Pixel(0,2): R:03 G:12 B:29 A:ff
-Pixel(1,2): R:03 G:13 B:2a A:ff
-Pixel(2,2): R:00 G:0d B:26 A:ff
-[TestPlugin] init.
-[WM] Plugin registered: TestPlugin (enabled=1)
-[WM] init complete.
-[WM] entering main loop.
+FAT32: Scanned entry at index 8 in cluster 2: 'INIT    O  ', attr: 0x20
+FAT32: Scanned entry at index 10 in cluster 2: 'NVVARS     ', attr: 0x20
+FAT32: End of entries reached at index 11 in cluster 2
+FAT32: Component 'init' not found in cluster 2
+FAT32: Path 'init' not found
+VFS: Failed to open file 'init' on mount '/drive0'
+Failed to open ELF file: /drive0/init
+Failed to load ELF for /init
+[kfree] invalid pointer
+boot_info_v2: ffffc00000001000, __kernel_virtual_offset: ffff800000000000, lowmem: 100000
+Current address space mappings:
+flags: 21025
+  Mapping: null4 @ 0x0-0x1000, size: 4096 bytes, flags: P U (0x0005) | 0x21025
+Loading ELF binary: /init.o
+Raw disk 'ahci0' with 102400 sectors.
+Device ID: 0, Type: DEV_AHCI, Name: ahci0, Sector Count: 102400, Sector Size: 512
+Device ID: 1, Type: DEV_AHCI, Name: ahci2, Sector Count: 0, Sector Size: 512
+Device ID: 2, Type: DEV_PART, Name: p2, Sector Count: 100319, Sector Size: 512, Start LBA: 2048
+partition_scan: Entering, disk pointer = 0xffffff8002020ce0
+partition_scan: Attempting to read LBA 0...
+partition_scan: block_read returned 0
+partition_scan: First 16 bytes of LBA 0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+partition_scan: MBR signature = 0xaa55
+partition_scan: Partition entry 0 type = 0xee
+partition_scan: Detected GPT protective MBR
+BlockDev: Unknown device type 3
+BlockDev: Registered device 'p3' (type=3, sectors=100319)
+Partition: Registered device #3 for LBA range [2048..102366]
+partition_scan found 1 partition(s).
+Attempting to mount FAT32 on device #3 ('p3').
+vfs_mount: mount_point=0xffff80000014263b, dev=0xffffff800202f560, fs_type=0xffff8000001420d0
+
+CHECKPOINT 1
+
+CHECKPOINT 7
+FAT32: Mounted volume – 512 bytes/sector, 1 sec/cluster, 2 FATs, root_cluster=2
+
+CHECKPOINT 8
+
+CHECKPOINT 2
+
+CHECKPOINT 3
+
+CHECKPOINT 4
+
+CHECKPOINT 5
+VFS: Mounted filesystem 'fat32' at mount point '/drive0/init'
+FAT32: Looking for component 'init.o' (83 format: 'INIT    O  ') in cluster 2
+FAT32: Scanned entry at index 0 in cluster 2: 'EFI        ', attr: 0x10
+FAT32: Scanned entry at index 2 in cluster 2: 'MODERNOS   ', attr: 0x10
+FAT32: Scanned entry at index 4 in cluster 2: 'HELLO   TXT', attr: 0x20
+FAT32: Scanned entry at index 6 in cluster 2: 'WP      BMP', attr: 0x20
+FAT32: Scanned entry at index 8 in cluster 2: 'INIT    O  ', attr: 0x20
+FAT32: Matching entry found: 'INIT    O  ' at index 8 in cluster 2
+FAT32: Found component 'init.o' in cluster 2 (entry cluster 2, offset 8)
+FAT32: Target file or directory 'init.o' resolved at cluster 2
+FAT32: Open successful. Start cluster: 24600, Size: 6816 bytes
+ELF file size: 6816 bytes
+ELF header validated. Entry point: 0x40004e
+Loading segment 0: offset=0x1000, vaddr=0x400000, filesz=0xdc, memsz=0xdc, align=0x1000, flags=0x5
+Current address space mappings:
+flags: 1025
+  Mapping: ELF segment @ 0x400000-0x402000, size: 8192 bytes, flags: P U (0x0005) | 0x1025
+ELF binary loaded. Entry point: 0x40004e
+Current address space mappings:
+flags: 1025
+  Mapping: ELF segment @ 0x400000-0x402000, size: 8192 bytes, flags: P U (0x0005) | 0x1025
+flags: 1023
+  Mapping: User stack @ 0x7fffff7ff000-0x7ffffffff000, size: 8388608 bytes, flags: P W U (0x0007) | 0x1023
+User stack allocated from 0x7fffff7ff000 to 0x7ffffffff000
+ch1ch2FDswitchingRIP: 40004e
+CS: 2b
+RFLAGS: 202
+RSP: 7ffffffff000
+SS: 23
+CR3: 7fb4a000
+IA32_LSTAR = 0x13e010

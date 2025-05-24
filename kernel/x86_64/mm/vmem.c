@@ -56,18 +56,6 @@ address_space_t *cur_space = NULL;
 #define DEBUG(fmt, ...) dvm(fmt, ##__VA_ARGS__)
 
 /*
- * Predefined kernel heap virtual address and size.
- * (These should be defined in a header or elsewhere in your kernel.)
- */
-#ifndef KERNEL_HEAP_VA
-#define KERNEL_HEAP_VA 0xFFFFFF8000400000ULL
-#endif
-
-#ifndef KERNEL_HEAP_SIZE
-#define KERNEL_HEAP_SIZE (6 * 1024 * 1024)  // 6MB heap
-#endif
-
-/*
  * Default hint addresses for different mapping types.
  */
 #define HINT_USER_DEFAULT   0x0000000050000000ULL
@@ -104,36 +92,6 @@ static void remove_vm_mapping(address_space_t *space, vm_mapping_t *vm) {
     kfree(vm);
 }
 
-static void vm_fork_internal(vm_mapping_t *vm, vm_mapping_t *new_vm) {
-    DEBUG("[DEBUG] Entering vm_fork_internal: vm=%p, new_vm=%p, vm->type=%d\n", vm, new_vm, vm->type);
-    bool shared = new_vm->flags & VM_SHARED;
-    DEBUG("[DEBUG] New mapping shared flag: %s\n", shared ? "true" : "false");
-
-    switch (vm->type) {
-      case VM_TYPE_RSVD:
-          DEBUG("[DEBUG] vm->type is VM_TYPE_RSVD. No further action required.\n");
-          break;
-      case VM_TYPE_PHYS:
-          DEBUG("[DEBUG] vm->type is VM_TYPE_PHYS. Copying physical mapping: %p\n", vm->vm_phys);
-          new_vm->vm_phys = vm->vm_phys;
-          break;
-      case VM_TYPE_PAGE:
-          DEBUG("[DEBUG] vm->type is VM_TYPE_PAGE. Allocating copy-on-write pages from %p\n", vm->vm_pages);
-          new_vm->vm_pages = alloc_cow_pages(vm->vm_pages);
-          DEBUG("[DEBUG] Allocated COW pages: %p\n", new_vm->vm_pages);
-          break;
-      case VM_TYPE_FILE:
-          DEBUG("[DEBUG] vm->type is VM_TYPE_FILE. File mapping fork unimplemented, invoking panic.\n");
-          panic("unimplemented: new_vm->vm_file = vm_file_fork(vm->vm_file);");
-          break;
-      default:
-          DEBUG("[ERROR] vm_fork_internal: Invalid mapping type %d\n", vm->type);
-          panic("vm_fork_internal: invalid mapping type");
-    }
-
-    DEBUG("[DEBUG] Exiting vm_fork_internal. new_vm updated successfully.\n");
-}
-
 static vm_mapping_t *vm_struct_alloc(enum vm_type type, uint32_t vm_flags, uintptr_t vaddr, size_t size, size_t virt_size) {
     DEBUG("[DEBUG] Allocating vm_struct: type=%d, flags=0x%x, vaddr=0x%lx, size=%zu, virt_size=%zu\n", type, vm_flags, vaddr, size, virt_size);
     vm_mapping_t *vm = kmallocz(sizeof(vm_mapping_t));
@@ -148,86 +106,6 @@ static vm_mapping_t *vm_struct_alloc(enum vm_type type, uint32_t vm_flags, uintp
     vm->virt_size = virt_size;
     kprintf("[DEBUG] vm_struct_alloc: Successfully allocated vm mapping at %p\n", vm);
     return vm;
-}
-
-/*
- * vm_fork_space - Create a duplicate (fork) of an address space.
- */
-address_space_t *vm_fork_space(address_space_t *space, bool deepcopy_user) {
-    kprintf("[DEBUG] Starting vm_fork_space: space=%p, deepcopy_user=%d\n", space, deepcopy_user);
-    kprintf("[DEBUG] Source space boundaries: min_addr=0x%lx, max_addr=0x%lx\n", space->min_addr, space->max_addr);
-
-    /* Create a new address space with the same min/max boundaries */
-    address_space_t *newspace = vm_new_space(space->min_addr, space->max_addr, 0);
-    if (!newspace) {
-        kprintf("[ERROR] vm_fork_space: vm_new_space failed to create a new address space.\n");
-        panic("vm_fork_space: failed to create new address space");
-    }
-    kprintf("[DEBUG] New address space created: %p\n", newspace);
-
-    /* Verify that we are forking the current page table */
-    kprintf("[DEBUG] Verifying page table: space->page_table=%p, current_pgtable=%p\n", (void*)space->page_table, (void*)get_current_pgtable());
-    kassert(space->page_table == get_current_pgtable());
-
-    /* Fork the page tables */
-    kprintf("[DEBUG] Forking page tables...\n");
-    page_t *meta_pages = NULL;
-    uintptr_t new_pgtable = fork_page_tables(&meta_pages, deepcopy_user);
-    kprintf("[DEBUG] Forked page tables: new_pgtable=0x%lx, meta_pages=%p\n", new_pgtable, meta_pages);
-
-    /* Update the new address space with the forked page table */
-    newspace->page_table = new_pgtable;
-    kprintf("[DEBUG] Updated newspace->page_table with forked table.\n");
-
-    /* Add the meta pages to the new address space's list */
-    kprintf("[DEBUG] Adding meta pages to newspace->table_pages...\n");
-    SLIST_ADD_SLIST(&newspace->table_pages, meta_pages, SLIST_GET_LAST(meta_pages, next), next);
-
-    /* Initialize the mapping count */
-    newspace->num_mappings = 0;
-    vm_mapping_t *prev_newvm = NULL;
-    vm_mapping_t *vm;
-
-    /* Iterate over each mapping in the source address space */
-    LIST_FOREACH(vm, &space->mappings, list) {
-        kprintf("[DEBUG] Processing mapping: name=%s, vm=%p, type=%d\n", vm->name, vm, vm->type);
-
-        /* Allocate a new mapping structure for the forked mapping */
-        vm_mapping_t *newvm = vm_struct_alloc(vm->type, vm->flags, vm->address, vm->size, vm->virt_size);
-        if (!newvm) {
-            kprintf("[ERROR] vm_fork_space: Failed to allocate mapping for %s\n", vm->name);
-            panic("vm_fork_space: failed to allocate mapping for %s", vm->name);
-        }
-        /* Duplicate the mapping name and update the space pointer */
-        newvm->name  = strdup(vm->name);
-        if (!newvm->name) {
-            kprintf("[ERROR] vm_fork_space: strdup failed for mapping name: %s\n", vm->name);
-            panic("vm_fork_space: failed to duplicate mapping name for %s", vm->name);
-        }
-        newvm->space = newspace;
-
-        kprintf("[DEBUG] Forking internal mapping for %s (newvm=%p)...\n", vm->name, newvm);
-        vm_fork_internal(vm, newvm);
-
-        /*
-         * Instead of inserting into an interval tree, add the new mapping to the new address space's linked list.
-         */
-        if (prev_newvm) {
-            kprintf("[DEBUG] Inserting new mapping %p after previous mapping %p\n", newvm, prev_newvm);
-            LIST_INSERT(&newspace->mappings, newvm, list, prev_newvm);
-        } else {
-            kprintf("[DEBUG] Adding first new mapping %p to newspace->mappings\n", newvm);
-            LIST_ADD(&newspace->mappings, newvm, list);
-        }
-        prev_newvm = newvm;
-
-        /* Update the mapping count */
-        newspace->num_mappings++;
-        kprintf("[DEBUG] Mapping count updated to %d\n", newspace->num_mappings);
-    }
-
-    kprintf("[DEBUG] vm_fork_space completed: newspace=%p with %d mappings\n", newspace, newspace->num_mappings);
-    return newspace;
 }
 
 /*
@@ -591,7 +469,7 @@ static int vmap_internal(address_space_t *space,
         } else if (type == VM_TYPE_PAGE) {
             if (vm->vm_pages) {
                 uintptr_t phys = vm->vm_pages->address;
-                early_map_entries(vm->address, phys, page_count, vm_flags);
+                early_map_entries(vm->address, phys, page_count, vm_flags | VM_USER);
             }
         }
     } else {
@@ -769,9 +647,9 @@ void vmem_init(void) {
     default_user_space = vm_new_space(USER_SPACE_START, USER_SPACE_END, pgtable);
     vm_set_current_space(default_user_space);
     
-    uint32_t kvm_flags = VM_FIXED | VM_NOMAP | VM_MAPPED;
+    uint32_t kvm_flags = VM_FIXED | VM_NOMAP | VM_MAPPED | VM_EXEC;
     /* Reserved null mapping */
-    vmap_rsvd(0, PAGE_SIZE, VM_USER | kvm_flags, "null");
+    vmap_rsvd(0, PAGE_SIZE, VM_USER | kvm_flags, "null1");
     kprintf("boot_info_v2: %llx, __kernel_virtual_offset: %llx, lowmem: %llx\n", boot_info_v2, &__kernel_virtual_offset, lowmem_size);
     /* Map low memory, kernel code, data, heap, and reserved regions */
     vmap_phys(0, (uintptr_t)(&__kernel_virtual_offset), lowmem_size, VM_RDWR | kvm_flags, "lowmem");
@@ -790,12 +668,12 @@ void vmem_init(void) {
 
 
     // fork the default address space but
-    address_space_t *user_space = vm_new_space(USER_SPACE_START, USER_SPACE_END, pgtable);
-    vm_set_current_space(user_space);
+    // address_space_t *user_space = vm_new_space(USER_SPACE_START, USER_SPACE_END, pgtable);
+    // vm_set_current_space(user_space);
 
     // You can do user-space mappings here if you want, but do NOT redo the kernel mappings
     // Also, you might want a null page if you like:
-    vmap_rsvd(0, PAGE_SIZE, VM_USER | VM_FIXED | VM_NOMAP | VM_MAPPED, "null");
+    // vmap_rsvd(0, PAGE_SIZE, VM_USER | VM_FIXED | VM_NOMAP | VM_MAPPED | VM_EXEC, "null2");
     
     // DO NOT REMAP lowmem, kernel code, kernel data, heap, reserved, etc. again.
     // The kernel portion is globally shared. If you want to replicate it, you
@@ -803,9 +681,9 @@ void vmem_init(void) {
     // call vmap_phys again for the same addresses.
 
     // Now set the new CR3
-    set_current_pgtable(user_space->page_table);
+    // set_current_pgtable(user_space->page_table);
 
-    vm_set_current_space(user_space);
+    // vm_set_current_space(user_space);
     
     dvm("Virtual memory management system initialized.");
 }
@@ -816,7 +694,7 @@ void init_ap_address_space() {
 
     // You can do user-space mappings here if you want, but do NOT redo the kernel mappings
     // Also, you might want a null page if you like:
-    vmap_rsvd(0, PAGE_SIZE, VM_USER | VM_FIXED | VM_NOMAP | VM_MAPPED, "null");
+    vmap_rsvd(0, PAGE_SIZE, VM_USER | VM_FIXED | VM_NOMAP | VM_MAPPED | VM_EXEC, "null3");
 }
 
 /* Debug: Print all mappings in the current address space */
@@ -825,7 +703,8 @@ void vm_print_address_space(void) {
     vm_mapping_t *vm;
     LIST_FOREACH(vm, &cur_space->mappings, list) {
         char flags_buf[128];
-        uint16_t flags = vm_flags_to_pe_flags(vm->flags);  // assume conversion function exists
+        kprintf("flags: %llx\n", vm->flags);
+        uint64_t flags = vm_flags_to_pe_flags(vm->flags);  // assume conversion function exists
         flags_to_str_r(flags, flags_buf, sizeof(flags_buf)); // assume conversion function exists
         kprintf("  Mapping: %s @ 0x%llx-0x%llx, size: %zu bytes, flags: %s | 0x%llx\n",
                 vm->name, vm->address, vm->address + vm->size, vm->size, flags_buf, vm->flags);
@@ -840,7 +719,7 @@ uintptr_t get_default_ap_pml4() {
  * ioremap: Maps a physical I/O memory region into the kernel virtual address space.
  */
 void *ioremap(uintptr_t phys_addr, size_t size, char *name) {
-    uintptr_t vaddr = vmap_phys(phys_addr, IOREMAP_BASE, size, VM_READ | VM_WRITE | VM_NOCACHE, name);
+    uintptr_t vaddr = vmap_phys(phys_addr, IOREMAP_BASE, size, VM_READ | VM_WRITE | VM_NOCACHE | VM_EXEC, name);
     return (void *)vaddr;
 }
 
@@ -853,4 +732,55 @@ void iounmap(void *addr, size_t size) {
     int res = vmap_free((uintptr_t)addr, size);
     if (res < 0)
         panic("iounmap failed for addr %p, size %zu", addr, size);
+}
+
+uintptr_t clone_kernel_space(uint64_t *new_pml4) {
+    // Get the current page table; this is expected to contain the proper kernel mappings.
+    uint64_t current_pml4 = get_current_pgtable();
+    
+    address_space_t *new_space = vm_new_space(USER_SPACE_START, USER_SPACE_END, get_current_pgtable());
+    vm_set_current_space(new_space);
+
+    // kernel
+    uintptr_t kernel_phys = (uintptr_t)__kernel_code_start - (uintptr_t)__kernel_virtual_offset;
+    size_t kernel_size = (uintptr_t)__kernel_data_end - (uintptr_t)__kernel_code_start;
+    uintptr_t kernel_vaddr = (uintptr_t)__kernel_virtual_offset + (uintptr_t)__kernel_code_start;
+    size_t lowmem_size = (uintptr_t)__kernel_address;
+    size_t kernel_code_size = (uintptr_t)__kernel_code_end - (uintptr_t)__kernel_code_start;
+    size_t kernel_data_size = (uintptr_t)__kernel_data_end - (uintptr_t)__kernel_code_end;
+    size_t reserved_size = kernel_reserved_va_ptr - KERNEL_RESERVED_VA;
+    uint32_t kvm_flags = VM_FIXED | VM_NOMAP | VM_MAPPED | VM_EXEC;
+    /* Reserved null mapping */
+    vmap_rsvd(0, PAGE_SIZE, VM_USER | kvm_flags | VM_EXEC, "null4");
+    kprintf("boot_info_v2: %llx, __kernel_virtual_offset: %llx, lowmem: %llx\n", boot_info_v2, &__kernel_virtual_offset, lowmem_size);
+    /* Map low memory, kernel code, data, heap, and reserved regions */
+    // vmap_phys(0, (uintptr_t)(&__kernel_virtual_offset), lowmem_size, VM_RDWR | kvm_flags, "lowmem");
+    vm_print_address_space();
+    // vmap_phys((uintptr_t)__kernel_address, (uintptr_t)__kernel_code_start, kernel_code_size, VM_RDEXC | kvm_flags, "kernel code");
+    // vmap_phys((uintptr_t)__kernel_address + kernel_code_size, (uintptr_t)__kernel_code_end, kernel_data_size, VM_RDWR | kvm_flags, "kernel data");
+    // vmap_phys(kheap_phys_addr(), KERNEL_HEAP_VA, KERNEL_HEAP_SIZE, VM_RDWR | kvm_flags, "kernel heap");
+    // vmap_phys(kernel_reserved_start, KERNEL_RESERVED_VA, reserved_size, VM_RDWR | kvm_flags, "kernel reserved");
+    
+    // execute_init_address_space_callbacks();
+    
+    /* Remap boot info struct */
+    static_assert(sizeof(boot_info_v2) <= PAGE_SIZE);
+    // boot_info_v2 = (void *)vmap_phys((uintptr_t)boot_info_v2, 0, PAGE_SIZE, VM_WRITE, "boot info");
+
+    // user
+    // vmap_rsvd(0, PAGE_SIZE, VM_USER | VM_FIXED | VM_NOMAP | VM_MAPPED, "null");
+
+    vm_set_current_space(default_user_space);
+    return new_space->page_table;
+
+    kprintf("[vmem] Cloning kernel space: copying PML4 entries 256 to 511 from %p to %p\n",
+            current_pml4, new_pml4);
+    
+    // For x86_64 with 512 entries per PML4, kernel space is typically in the higher half.
+    // Copy entries 256 to 511 to ensure that the new page table contains all kernel mappings.
+    for (int i = 256; i < 512; i++) {
+        // new_pml4[i] = current_pml4[i];
+    }
+    
+    kprintf("[vmem] Kernel space cloning complete.\n");
 }

@@ -36,6 +36,10 @@
 #include <panic.h>
 #include <cpu/cpu_features.h>
 
+#include <task.h>
+#include <sched.h>
+#include <syscall.h>
+
 static unsigned char SCAN_CODE_MAPPING[] = "\x00""\x1B""1234567890-=""\x08""\tqwertyuiop[]\n\0asdfghjkl;'`\0\\zxcvbnm,./\0*\0 \0\0\0\0\0\0\0\0\0\0\0\0\0-456+1230.\0\0\0\0\0";
 
 static void keyboard_isr(uint64_t vector, uint32_t error)
@@ -103,9 +107,10 @@ void kern_main(boot_info_v2_t* boot_hdr)
 	acpi_init(boot_info_v2->acpi_ptr);
 	lapic_init();
 	ioapic_init();
+    syscall_init();
 	__asm__ volatile("sti");
 	vmem_init();
-	
+
 	kprintf("ModernOS (C)\n\n\r");
 
 	// smp_init();
@@ -120,28 +125,34 @@ void kern_main(boot_info_v2_t* boot_hdr)
 
 	vm_print_address_space();
 
-	sched_init();
-	// int cpu_id = get_cpu_id();
-	// sched_init_cpu(cpu_id);
-
-	// sched_start_cpu(cpu_id);
-
 	ahci_init();
     kprintf("Kernel: File loaded successfully. Continuing boot...\n");
 
-	wm_init();
-	wm_run();
+	// wm_init();
+	// wm_run();
+
+    scheduler_init();
+
+    struct task_struct *init_task = create_user_process("/init.o", NULL, NULL);\
+    if (init_task) {
+        init_task->state = TASK_READY;
+        enqueue_task(init_task, get_cpu_id());
+    kprintf("FD");
+    } else {
+        panic("Failed to create init process!\n");
+    }
 
 	while (1)
 	{
+        schedule();
 
 	}
 }
 
 __used void ap_main() {
-	int cpu_id = get_cpu_id();
-	sched_init_cpu(cpu_id);
-	sched_start_cpu(cpu_id);
+	// int cpu_id = get_cpu_id();
+	// sched_init_cpu(cpu_id);
+	// sched_start_cpu(cpu_id);
 	while (1) {
 	}
 }

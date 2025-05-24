@@ -1,0 +1,85 @@
+
+init.o:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000400000 <main>:
+#include <syscall.h>
+
+extern long syscall6(long number, long a1, long a2, long a3, long a4, long a5, long a6) __attribute__((sysv_abi));
+
+int main(void)
+{
+  400000:	55                   	push   %rbp
+  400001:	48 89 e5             	mov    %rsp,%rbp
+  400004:	48 83 ec 10          	sub    $0x10,%rsp
+    char buf[3] = "abc";
+  400008:	66 c7 45 f5 61 62    	movw   $0x6261,-0xb(%rbp)
+  40000e:	c6 45 f7 63          	movb   $0x63,-0x9(%rbp)
+    long fd = 4;
+  400012:	48 c7 45 f8 04 00 00 	movq   $0x4,-0x8(%rbp)
+  400019:	00 
+    syscall6(SYS_write, fd, (long)buf, 3, 0, 0, 0);
+  40001a:	48 8d 55 f5          	lea    -0xb(%rbp),%rdx
+  40001e:	48 8b 45 f8          	mov    -0x8(%rbp),%rax
+  400022:	48 83 ec 08          	sub    $0x8,%rsp
+  400026:	6a 00                	push   $0x0
+  400028:	41 b9 00 00 00 00    	mov    $0x0,%r9d
+  40002e:	41 b8 00 00 00 00    	mov    $0x0,%r8d
+  400034:	b9 03 00 00 00       	mov    $0x3,%ecx
+  400039:	48 89 c6             	mov    %rax,%rsi
+  40003c:	bf 05 00 00 00       	mov    $0x5,%edi
+  400041:	e8 1b 00 00 00       	call   400061 <syscall6>
+  400046:	48 83 c4 10          	add    $0x10,%rsp
+    while (1) {
+  40004a:	90                   	nop
+  40004b:	eb fd                	jmp    40004a <main+0x4a>
+
+000000000040004d <_start>:
+    .global _start
+_start:
+    /* the loader should give us a stack; if not, set one up here   */
+    call main
+  40004d:	e8 ae ff ff ff       	call   400000 <main>
+    mov  $1, %rdi      /* SYS_EXIT */
+  400052:	48 c7 c7 01 00 00 00 	mov    $0x1,%rdi
+    xor  %rsi, %rsi    /* status = 0 */
+  400059:	48 31 f6             	xor    %rsi,%rsi
+    syscall
+  40005c:	0f 05                	syscall
+
+000000000040005e <.hang>:
+.hang: hlt; jmp .hang
+  40005e:	f4                   	hlt
+  40005f:	eb fd                	jmp    40005e <.hang>
+
+0000000000400061 <syscall6>:
+
+        .text
+        .globl  syscall6
+        .type   syscall6,@function
+syscall6:
+        int3
+  400061:	cc                   	int3
+        /* move the arguments where the kernel expects them */
+        mov     %rdi, %rax          /* n   → RAX */
+  400062:	48 89 f8             	mov    %rdi,%rax
+        mov     %rsi, %rdi          /* a1  already in RDI, but keep symmetrical */
+  400065:	48 89 f7             	mov    %rsi,%rdi
+        mov     %rdx, %rsi          /* a2  → RSI */
+  400068:	48 89 d6             	mov    %rdx,%rsi
+        mov     %rcx, %rdx          /* a3  → RDX */
+  40006b:	48 89 ca             	mov    %rcx,%rdx
+        mov     %r8,  %r10          /* a4  → R10 */
+  40006e:	4d 89 c2             	mov    %r8,%r10
+        mov     %r9,  %r8           /* a5  →  R8 */
+  400071:	4d 89 c8             	mov    %r9,%r8
+        mov     8(%rsp), %r9        /* a6  (stack) → R9 */
+  400074:	4c 8b 4c 24 08       	mov    0x8(%rsp),%r9
+
+        syscall                     /* enter kernel */
+  400079:	0f 05                	syscall
+
+        ret                         /* result already in RAX */
+  40007b:	c3                   	ret
